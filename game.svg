@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+		xmlns:xlink="http://www.w3.org/1999/xlink"
+		version="1.1"
+		baseProfile="basic"
+		width="100%" height="100%"
+		viewBox="0 0 1000 1000"
+		preserveAspectRatio="xMidYMid meet"
+		clip-path="url(#clip-all)"
+		id="display"
+		>
+	<title>#F00 Baron</title>
+	<defs>
+		<style type="text/css">
+			<![CDATA[
+				#background path {
+					stroke: #000;
+					stroke-width: 5;
+					stroke-linecap: round;
+					stroke-linejoin: miter;
+				}
+				#mountains path {
+					fill: url(#pattern-mountain);
+				}
+				#hills path {
+					fill: url(#pattern-hill);
+				}
+				#ground {
+					fill: url(#pattern-ground);
+					stroke: #000;
+					stroke-width: 5;
+				}
+			]]>
+		</style>
+		
+		<clipPath id="clip-all">
+			<rect x="0" y="0" width="100%" height="100%" />
+		</clipPath>
+	</defs>
+	
+	<g id="background">
+		<defs>
+			<linearGradient id="pattern-sky"
+					x1="0" y1="0"
+					x2="0" y2="100%"
+					>
+				<stop offset="0" stop-color="#8cf" />
+				<stop offset="1" stop-color="#04f" />
+			</linearGradient>
+			<linearGradient id="pattern-mountain"
+					x1="0" y1="0"
+					x2="0" y2="100%"
+					>
+				<stop offset="0" stop-color="#fff" />
+				<stop offset="0.1" stop-color="#fff" />
+				<stop offset="0.3" stop-color="#888" />
+				<stop offset="1" stop-color="#444" />
+			</linearGradient>
+			<linearGradient id="pattern-hill"
+					x1="0" y1="0"
+					x2="0" y2="100%"
+					>
+				<stop offset="0" stop-color="#4c4" />
+				<stop offset="1" stop-color="#080" />
+			</linearGradient>
+			<linearGradient id="pattern-ground"
+					x1="0" y1="0"
+					x2="0" y2="100%"
+					>
+				<stop offset="0" stop-color="#840" />
+				<stop offset="1" stop-color="#420" />
+			</linearGradient>
+		</defs>
+		
+		<rect id="sky"
+				x="0" y="0"
+				width="100%" height="100%"
+				fill="url(#pattern-sky)"
+				/>
+		<g id="mountains">
+			<path d="M -300,950 l 350,-250 L 400,950" />
+			<path d="M 200,950 l 300,-200 l 20,-30 l 50,-10 L 800,950" />
+			<path d="M 500,950 l 200,-250 l 100,-60 l 50,20 l 100,10 L 1100,950" />
+			<path d="M -150,950 l 350,-350 l 70,70 l 40,-20 l 80,100 L 550,950" />
+		</g>
+		<g id="hills">
+			<path d="M 400,950 q 300,-200 600,0" />
+			<path d="M 100,950 q 200,-300 400,0" />
+			<path d="M -100,950 q 200,-200 400,0" />
+			<path d="M 550,950 q 100,-100 200,0" />
+			<path d="M 800,950 q 200,-200 400,0" />
+		</g>
+	</g>
+	
+	<g id="planes">
+	</g>
+	
+	<g id="foreground">
+		<g id="clouds">
+		</g>
+		
+		<rect id="ground"
+				x="0" y="950"
+				width="100%" height="50"
+				/>
+	</g>
+</svg>
