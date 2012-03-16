@@ -44,8 +44,8 @@
 					x1="0" y1="0"
 					x2="0" y2="100%"
 					>
-				<stop offset="0" stop-color="#8cf" />
-				<stop offset="1" stop-color="#04f" />
+				<stop offset="0" stop-color="#04f" />
+				<stop offset="1" stop-color="#8cf" />
 			</linearGradient>
 			<linearGradient id="pattern-mountain"
 					x1="0" y1="0"
@@ -97,6 +97,7 @@
 	
 	<g id="foreground">
 		<g id="clouds">
+			<use xlink:href="clouds.svg#cloud-2" x="100" y="300" />
 		</g>
 		
 		<rect id="ground"
