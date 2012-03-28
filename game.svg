@@ -44,9 +44,11 @@
 	<script type="text/ecmascript" xlink:href="lib/jquery-1.7.1.js"></script>
 	<script type="text/ecmascript" xlink:href="lib/jquery.svg.js"></script>
 	<script type="text/ecmascript" xlink:href="lib/jquery.svgdom.js"></script>
+	<script type="text/ecmascript" xlink:href="game.js"></script>
 	<script type="text/ecmascript">
 		//<![CDATA[
-		// window..load because document..ready doesn't work for SVG
+		
+		// Randomise cloud positions
 		jQuery(document).on('beginEvent repeatEvent', '.cloud', function(event) {
 			var cloud = jQuery(this);
 			var shape = cloud.find('use');
@@ -58,7 +60,23 @@
 			cloud.find('animate').attr('dur', Math.floor(new_dur));
 		});
 		
+		// window..load because document..ready doesn't work for SVG
 		jQuery(window).load(function() {
+			// Init game
+			var game = new f00baron.Game();
+			game.add_player({
+				 element: jQuery('#player1')
+				,controls: {
+					// Player 1 - WSAD
+					 87: 'engineOn'
+					,83: 'engineOff'
+					,65: 'rotateACW'
+					,68: 'rotateCW'
+				}
+			});
+			
+			// Start main loop
+			game.start();
 		});
 		//]]>
 	</script>
