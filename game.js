@@ -142,10 +142,10 @@ f00baron.Plane = function(params) {
 	var power = 100;
 	var speed;
 	var max_speed = 400;
-	var takeoff_speed = 100;
+	var takeoff_speed = 200;
 	var stall_speed = 50;
 	// Rotate in deg/sec
-	var rotate_speed = 100;
+	var rotate_speed = 200;
 	
 	this.respawn = function() {
 		this.pos = start_pos
@@ -166,10 +166,10 @@ f00baron.Plane = function(params) {
 		self.engine = false;
 	});
 	jQuery(this.element).on('rotateCW', function(event) {
-		self.pitch = -1;
+		self.pitch = 1;
 	});
 	jQuery(this.element).on('rotateACW', function(event) {
-		self.pitch = 1;
+		self.pitch = -1;
 	});
 	jQuery(this.element).on('rotateOff', function(event) {
 		self.pitch = 0;
@@ -183,32 +183,33 @@ f00baron.Plane = function(params) {
 				dt: The amount of time which has passed (milliseconds)
 			}
 		*/
-		var dx, dy, dr;
+		var vx, vy, dx, dy, dr;
+		var dt = params.dt / 1000;
 		
 		if (!self.stalled) {
 			// Apply engine
 			if (self.engine && speed < max_speed) {
-				speed += (power * params.dt / 1000);
+				speed += (power * dt);
 			}
 		}
 		// Apply speed
 		var radians = self.angle * (Math.PI / 180);
-		dx = Math.cos(radians) * speed;
-		dy = Math.sin(radians) * speed;
+		vx = Math.cos(radians) * speed;
+		vy = Math.sin(radians) * speed;
 		if (self.airborne) {
 			// Gravity only takes effect below a certain horizontal speed
-			if (dx < takeoff_speed) {
-				dy += (gravity * params.dt / 1000);
+			if (vx < takeoff_speed) {
+				vy += (gravity * dt);
 			}
 		} else {
 			// We get airborne once we reach take-off speed.
-			dy = 0;
-			if (dx > takeoff_speed) {
+			vy = 0;
+			if (vx > takeoff_speed) {
 				self.airborne = true;
 			}
 		}
 		// Apply rotation
-		dr = self.pitch * (rotate_speed * params.dt / 1000);
+		dr = self.pitch * (rotate_speed * dt);
 		
 		// Entering/leaving a stall
 		if (!self.stalled) {
@@ -223,6 +224,8 @@ f00baron.Plane = function(params) {
 		}
 		
 		// Update position/rotation
+		dx = vx * dt;
+		dy = vy * dt;
 		self.pos = [self.pos[0] + dx, self.pos[1] + dy];
 		self.angle += dr;
 		self.draw();
@@ -235,6 +238,6 @@ f00baron.Plane = function(params) {
 		this.element.attr('x', this.pos[0]);
 		this.element.attr('y', this.pos[1]);
 		var transform = 'rotate(' + this.angle + ')';
-		this.element.find('rotator').attr('transform', transform);
+		this.element.find('.rotator').attr('transform', transform);
 	}
 	

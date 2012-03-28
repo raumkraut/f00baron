@@ -167,10 +167,12 @@
 		<svg id="player1"
 				x="50" y="935"
 				overflow="visible">
-			<use xlink:href="planes.svg#plane-1"
-					class="plane player1 rotator"
-					transform="rotate(-10) scale(1.5)"
-					/>
+			<g class="scaler" transform="scale(1.5)">
+				<use xlink:href="planes.svg#plane-1"
+						class="plane player1 rotator"
+						transform="rotate(-10)"
+						/>
+			</g>
 		</svg>
 	</g>
 	
