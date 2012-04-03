@@ -57,8 +57,6 @@ f00baron.Game = function(params) {
 	if ( !(this instanceof arguments.callee) ) 
 		throw new Error("I pity the fool who calls a constructor as a function!");
 	
-	var ground_level = 935;
-	
 	// Register event listeners
 	/// TODO
 	
@@ -99,7 +97,13 @@ f00baron.Game = function(params) {
 				controls: {a mapping of keycode: eventType for this player}
 			}
 		*/
-		var plane = new f00baron.Plane({element:params.element});
+		var plane = new f00baron.Plane({
+			 element:params.element
+			,ground: 950
+			,ceiling: 0
+			,x_min: 0
+			,x_max: 1000
+		});
 		// Set up the controls
 		jQuery(window).on('keydown keyup', function(event) {
 			// Map keycode to control params
@@ -123,6 +127,10 @@ f00baron.Plane = function(params) {
 		
 		params = {
 			element: The jQuery element representing this plane.
+			ground: The scene's ground level.
+			ceiling: The scene's flight ceiling.
+			x_min: The minimum X coordinate.
+			x_max: The maximum X coordinate.
 		}
 	*/
 	if ( !(this instanceof arguments.callee) ) 
@@ -136,23 +144,45 @@ f00baron.Plane = function(params) {
 	var start_pos = [parseInt(this.element.attr('x')), parseInt(this.element.attr('y'))];
 	var start_heading = this.element.find('.rotator').attr('transform');
 	start_heading = parseInt(start_heading.replace(/.*rotate\((-?[0-9]+)\).*/, '$1'), 10);
+	var dimensions = this.element.find('.sizer')[0].getBBox()
+	var height = dimensions.height;
+	var width = dimensions.width;
+	
+	// Airspace boundaries
+	var ground = params.ground;
+	var ceiling = params.ceiling;
+	var x_min = params.x_min - width/2;
+	var x_max = params.x_max + width/2;
+	
 	
 	// Constants
 	// Power/gravity is speed/sec from the engine
-	var gravity = 400;
+	var gravity = 300;
 	var thrust = 200;
 	// Drag is ratio/sec
-	var drag = 0.4;
+	var drag = 0.6;
 	var stall_speed = 100;
 	// Gravity has no (net) effect above the unstall_speed
-	var unstall_speed = 200;
+	var unstall_speed = 300;
 	// Rotate in deg/sec
 	var rotate_speed = 200;
 	
+	this.get_bbox = function() {
+		var bbox = this.element[0].getBBox();
+		return {
+			 height: bbox.height
+			,width: bbox.width
+			,half_height: bbox.height / 2
+			,half_width: bbox.width / 2
+		}
+	}
+	var start_bbox = this.get_bbox();
+	
 	this.respawn = function() {
 		// Variables
-		this.pos = start_pos
 		this.heading = start_heading;
+		this.bbox = this.get_bbox();
+		this.pos = [start_pos[0], ground - start_bbox.half_height];
 		this.pitch = 0;
 		this.engine = false;
 		this.airborne = false;
@@ -233,6 +263,7 @@ f00baron.Plane = function(params) {
 		// Apply rotation
 		if (self.airborne) {
 			dr = self.pitch * (rotate_speed * dt);
+			self.bbox = self.get_bbox();
 		} else {
 			dr = 0;
 		}
@@ -256,11 +287,26 @@ f00baron.Plane = function(params) {
 		dy = self.vy * dt;
 		self.pos = [self.pos[0] + dx, self.pos[1] + dy];
 		self.heading += dr;
+		
+		// Normalise position
+		if (self.pos[0] < x_min) {
+			self.pos[0] = x_max;
+		} else if (self.pos[0] > x_max) {
+			self.pos[0] = x_min;
+		}
 		// Normalise rotation
 		if (self.heading < 0) {
 			self.heading += 360;
 		} else if (self.heading > 360) {
 			self.heading -= 360;
+		}
+		
+		// Check for out-of-bounds
+		if (self.pos[1] < ceiling + self.bbox.half_height) {
+			self.stalled = true;
+		} else if (self.pos[1] > ground - self.bbox.half_height) {
+			/// TODO: BOOM!
+			self.respawn();
 		}
 		
 		/// TODO: Replace this with a "moved" event, or something
