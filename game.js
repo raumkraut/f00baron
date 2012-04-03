@@ -134,27 +134,33 @@ f00baron.Plane = function(params) {
 	this.element.data('f00baron.object', this);
 	
 	var start_pos = [parseInt(this.element.attr('x')), parseInt(this.element.attr('y'))];
-	var start_angle = this.element.find('.rotator').attr('transform');
-	start_angle = parseInt(start_angle.replace(/.*rotate\((-?[0-9]+)\).*/, '$1'), 10);
+	var start_heading = this.element.find('.rotator').attr('transform');
+	start_heading = parseInt(start_heading.replace(/.*rotate\((-?[0-9]+)\).*/, '$1'), 10);
 	
+	// Constants
 	// Power/gravity is speed/sec from the engine
-	var gravity = 200;
-	var power = 100;
-	var speed;
-	var max_speed = 400;
-	var takeoff_speed = 200;
-	var stall_speed = 50;
+	var gravity = 400;
+	var thrust = 200;
+	// Drag is ratio/sec
+	var drag = 0.4;
+	var stall_speed = 100;
+	// Gravity has no (net) effect above the unstall_speed
+	var unstall_speed = 200;
 	// Rotate in deg/sec
 	var rotate_speed = 200;
 	
 	this.respawn = function() {
+		// Variables
 		this.pos = start_pos
-		this.angle = start_angle;
+		this.heading = start_heading;
 		this.pitch = 0;
 		this.engine = false;
 		this.airborne = false;
 		this.stalled = false;
-		speed = 0;
+		// Speed is used for powered flight, vx/vy for ballistic
+		this.speed = 0;
+		this.vx = 0;
+		this.vy = 0;
 	}
 	this.respawn();
 	
@@ -183,51 +189,81 @@ f00baron.Plane = function(params) {
 				dt: The amount of time which has passed (milliseconds)
 			}
 		*/
-		var vx, vy, dx, dy, dr;
+		var dx, dy, dr;
 		var dt = params.dt / 1000;
 		
 		if (!self.stalled) {
 			// Apply engine
-			if (self.engine && speed < max_speed) {
-				speed += (power * dt);
+			if (self.engine) {
+				self.speed += (thrust * dt);
 			}
+			
+			// Apply speed
+			var radians = self.heading * (Math.PI / 180);
+			self.vx = Math.cos(radians) * self.speed;
+			self.vy = Math.sin(radians) * self.speed;
 		}
-		// Apply speed
-		var radians = self.angle * (Math.PI / 180);
-		vx = Math.cos(radians) * speed;
-		vy = Math.sin(radians) * speed;
-		if (self.airborne) {
-			// Gravity only takes effect below a certain horizontal speed
-			if (vx < takeoff_speed) {
-				vy += (gravity * dt);
+		
+		// Apply drag
+		var drag_factor = 1 - (drag * dt);
+		self.vx *= drag_factor;
+		self.vy *= drag_factor;
+		
+		// Apply gravity
+		// Gravity has no effect when vx > unstall_speed
+		if (self.vx < unstall_speed) {
+			// ...and is graduated between stall_speed and unstall_speed
+			var grabbity = 1;
+			if (self.vx > stall_speed) {
+				grabbity -= (self.vx - stall_speed) / (unstall_speed - stall_speed);
 			}
-		} else {
-			// We get airborne once we reach take-off speed.
-			vy = 0;
-			if (vx > takeoff_speed) {
+			self.vy += gravity * grabbity * dt;
+		}
+		
+		if (!self.airborne) {
+			// Have we taken off yet?
+			if (self.vx < stall_speed) {
+				self.vy = 0;
+			} else if (self.vy < 0) {
 				self.airborne = true;
+			} else {
+				self.vy = 0;
 			}
 		}
 		// Apply rotation
-		dr = self.pitch * (rotate_speed * dt);
+		if (self.airborne) {
+			dr = self.pitch * (rotate_speed * dt);
+		} else {
+			dr = 0;
+		}
+		// Update speed based on velocity
+		self.speed = Math.sqrt(Math.pow(self.vx, 2) + Math.pow(self.vy, 2));
 		
 		// Entering/leaving a stall
 		if (!self.stalled) {
-			if (self.airborne && speed < stall_speed) {
+			if (self.airborne && self.speed < stall_speed) {
 				self.stalled = true;
 			}
-		} else if (this.speed > takeoff_speed) {
+		} else if (self.speed > unstall_speed) {
 			// Got to be pointing downwards
-			if (self.angle > 260 && self.angle < 280) {
+			if (self.heading > 75 && self.heading < 105) {
 				self.stalled = false;
 			}
 		}
 		
 		// Update position/rotation
-		dx = vx * dt;
-		dy = vy * dt;
+		dx = self.vx * dt;
+		dy = self.vy * dt;
 		self.pos = [self.pos[0] + dx, self.pos[1] + dy];
-		self.angle += dr;
+		self.heading += dr;
+		// Normalise rotation
+		if (self.heading < 0) {
+			self.heading += 360;
+		} else if (self.heading > 360) {
+			self.heading -= 360;
+		}
+		
+		/// TODO: Replace this with a "moved" event, or something
 		self.draw();
 	});
 }
@@ -237,7 +273,7 @@ f00baron.Plane = function(params) {
 		*/
 		this.element.attr('x', this.pos[0]);
 		this.element.attr('y', this.pos[1]);
-		var transform = 'rotate(' + this.angle + ')';
+		var transform = 'rotate(' + this.heading + ')';
 		this.element.find('.rotator').attr('transform', transform);
 	}
 	
