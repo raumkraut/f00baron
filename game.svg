@@ -35,7 +35,7 @@
 					color: #f00;
 				}
 				.player2 {
-					color: #00f;
+					color: #ff0;
 				}
 			]]>
 		</style>
@@ -72,6 +72,16 @@
 					,83: 'engineOff'
 					,65: 'rotateACW'
 					,68: 'rotateCW'
+				}
+			});
+			game.add_player({
+				 element: jQuery('#player2')
+				,controls: {
+					// Player 2 - up/down/left/right
+					 38: 'engineOn'
+					,40: 'engineOff'
+					,37: 'rotateACW'
+					,39: 'rotateCW'
 				}
 			});
 			
@@ -172,6 +182,17 @@
 				<use xlink:href="planes.svg#plane-1"
 						class="plane scaler"
 						transform="scale(1.5)"
+						/>
+			</g>
+		</svg>
+		<svg id="player2"
+				class="player2"
+				x="950" y="935"
+				overflow="visible">
+			<g class="rotator sizer" transform="rotate(190)">
+				<use xlink:href="planes.svg#plane-1"
+						class="plane scaler"
+						transform="scale(1.5, -1.5)"
 						/>
 			</g>
 		</svg>

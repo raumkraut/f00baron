@@ -181,13 +181,12 @@ f00baron.Plane = function(params) {
 			,half_width: bbox.width / 2
 		}
 	}
-	var start_bbox = this.get_bbox();
 	
 	var respawn = function() {
 		// Flight parameters
 		self.heading = start_heading;
 		self.bbox = self.get_bbox();
-		self.pos = [start_pos[0], ground - start_bbox.half_height];
+		self.pos = [start_pos[0], ground - self.bbox.half_height];
 		self.pitch = 0;
 		self.engine = false;
 		self.airborne = false;
@@ -257,21 +256,22 @@ f00baron.Plane = function(params) {
 		var drag_factor = 1 - (drag * dt);
 		self.vx *= drag_factor;
 		self.vy *= drag_factor;
+		var h_speed = Math.abs(self.vx);
 		
 		// Apply gravity
-		// Gravity has no effect when vx > unstall_speed
-		if (self.vx < unstall_speed) {
+		// Gravity has no effect when |vx| > unstall_speed
+		if (h_speed < unstall_speed) {
 			// ...and is graduated between stall_speed and unstall_speed
 			var grabbity = 1;
-			if (self.vx > stall_speed) {
-				grabbity -= (self.vx - stall_speed) / (unstall_speed - stall_speed);
+			if (h_speed > stall_speed) {
+				grabbity -= (h_speed - stall_speed) / (unstall_speed - stall_speed);
 			}
 			self.vy += gravity * grabbity * dt;
 		}
 		
 		if (!self.airborne) {
 			// Have we taken off yet?
-			if (self.vx < stall_speed) {
+			if (h_speed < stall_speed) {
 				self.vy = 0;
 			} else if (self.vy < 0) {
 				self.airborne = true;
@@ -317,10 +317,18 @@ f00baron.Plane = function(params) {
 		}
 		if (!self.airborne) {
 			// Limit heading while on the ground
-			if (dr > 0 && self.heading > 0) {
-				self.heading = 0;
-			} else if (dr < 0 && self.heading < 350) {
-				self.heading = 350;
+			if (self.heading > 0 && self.heading < 180) {
+				if (dr > 0) {
+					self.heading = 0;
+				} else {
+					self.heading = 180;
+				}
+			} else if (self.heading > 190 && self.heading < 350) {
+				if (dr > 0) {
+					self.heading = 190;
+				} else {
+					self.heading = 350;
+				}
 			}
 		}
 		self.bbox = self.get_bbox();
