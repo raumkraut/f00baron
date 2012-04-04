@@ -11,23 +11,28 @@
 		newPlane: A new challenger appears!
 			plane: <The relevant plane object>
 		newBullet: You're fired!
-			plane: <The firing plane object>
+			source: <The firing plane object>
 			bullet: <The relevant bullet object>
-		impact: BOOM! HEADSHOT!
-			parties: [Array of impacting parties]
-	The following events will be triggered on the plane's DOM object
+		explosion: BOOM! HEADSHOT!
+			pos: [Coordinates of explosion]
+	The following events will be triggered on an object's DOM element
+		newPosition: An object has a new position
+			target: <The object in question>
+		destroy: An object has been destroyed
+			target: <The plane in question>
+	The following events will be triggered on a plane's DOM element
 		engineOn: A plane has switched its engine on
-			plane: <The plane in question>
+			target: <The plane in question>
 		engineOff: A plane has switched off its engine
-			plane: <The plane in question>
+			target: <The plane in question>
 		rotateCW: A plane is rotating clockwise
-			plane: <The plane in question>
+			target: <The plane in question>
 		rotateACW: A plane is rotating anti-clockwise
-			plane: <The plane in question>
+			target: <The plane in question>
 		rotateOff: A plane has stopped rotating
-			plane: <The plane in question>
+			target: <The plane in question>
 		fire: A plane is firing
-			plane: <The plane in question>
+			target: <The plane in question>
 */
 // RequestAnimationFrame shim
 window.requestAnimationFrame = (function() {
@@ -98,7 +103,7 @@ f00baron.Game = function(params) {
 			}
 		*/
 		var plane = new f00baron.Plane({
-			 element:params.element
+			 element: params.element
 			,ground: 950
 			,ceiling: 0
 			,x_min: 0
@@ -116,7 +121,7 @@ f00baron.Game = function(params) {
 				event_type = 'rotateOff';
 			}
 			
-			jQuery(plane.element).trigger(event_type, {plane: plane});
+			jQuery(plane.element).trigger(event_type, {target: plane});
 		});
 		
 	}
@@ -155,9 +160,9 @@ f00baron.Plane = function(params) {
 	var x_max = params.x_max + width/2;
 	
 	
-	// Constants
+	// Plane attributes
 	// Power/gravity is speed/sec from the engine
-	var gravity = 300;
+	var gravity = 350;
 	var thrust = 200;
 	// Drag is ratio/sec
 	var drag = 0.6;
@@ -178,23 +183,27 @@ f00baron.Plane = function(params) {
 	}
 	var start_bbox = this.get_bbox();
 	
-	this.respawn = function() {
-		// Variables
-		this.heading = start_heading;
-		this.bbox = this.get_bbox();
-		this.pos = [start_pos[0], ground - start_bbox.half_height];
-		this.pitch = 0;
-		this.engine = false;
-		this.airborne = false;
-		this.stalled = false;
+	var respawn = function() {
+		// Flight parameters
+		self.heading = start_heading;
+		self.bbox = self.get_bbox();
+		self.pos = [start_pos[0], ground - start_bbox.half_height];
+		self.pitch = 0;
+		self.engine = false;
+		self.airborne = false;
+		self.stalled = false;
 		// Speed is used for powered flight, vx/vy for ballistic
-		this.speed = 0;
-		this.vx = 0;
-		this.vy = 0;
+		self.speed = 0;
+		self.vx = 0;
+		self.vy = 0;
 	}
-	this.respawn();
+	respawn();
 	
 	// Register event listeners
+	jQuery(this.element).on('destroy', function(event) {
+		jQuery(window).trigger('explosion', {pos: self.pos});
+		respawn();
+	});
 	jQuery(this.element).on('engineOn', function(event) {
 		self.engine = true;
 	});
@@ -209,6 +218,16 @@ f00baron.Plane = function(params) {
 	});
 	jQuery(this.element).on('rotateOff', function(event) {
 		self.pitch = 0;
+	});
+	
+	jQuery(this.element).on('newPosition', function(event) {
+		/*
+			Updates the plane's graphical element.
+		*/
+		self.element.attr('x', self.pos[0]);
+		self.element.attr('y', self.pos[1]);
+		var transform = 'rotate(' + self.heading + ')';
+		self.element.find('.rotator').attr('transform', transform);
 	});
 	
 	jQuery(window).on('tick', function(event, params) {
@@ -261,12 +280,8 @@ f00baron.Plane = function(params) {
 			}
 		}
 		// Apply rotation
-		if (self.airborne) {
-			dr = self.pitch * (rotate_speed * dt);
-			self.bbox = self.get_bbox();
-		} else {
-			dr = 0;
-		}
+		dr = self.pitch * (rotate_speed * dt);
+		
 		// Update speed based on velocity
 		self.speed = Math.sqrt(Math.pow(self.vx, 2) + Math.pow(self.vy, 2));
 		
@@ -300,26 +315,24 @@ f00baron.Plane = function(params) {
 		} else if (self.heading > 360) {
 			self.heading -= 360;
 		}
+		if (!self.airborne) {
+			// Limit heading while on the ground
+			if (dr > 0 && self.heading > 0) {
+				self.heading = 0;
+			} else if (dr < 0 && self.heading < 350) {
+				self.heading = 350;
+			}
+		}
+		self.bbox = self.get_bbox();
 		
 		// Check for out-of-bounds
 		if (self.pos[1] < ceiling + self.bbox.half_height) {
 			self.stalled = true;
 		} else if (self.pos[1] > ground - self.bbox.half_height) {
-			/// TODO: BOOM!
-			self.respawn();
+			jQuery(self.element).trigger('destroy', {target: self});
 		}
 		
-		/// TODO: Replace this with a "moved" event, or something
-		self.draw();
+		jQuery(self.element).trigger('newPosition', {target: self});
 	});
-}
-	f00baron.Plane.prototype.draw = function() {
-		/*
-			Updates the plane's graphical element.
-		*/
-		this.element.attr('x', this.pos[0]);
-		this.element.attr('y', this.pos[1]);
-		var transform = 'rotate(' + this.heading + ')';
-		this.element.find('.rotator').attr('transform', transform);
-	}
 	
+}
