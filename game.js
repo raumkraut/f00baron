@@ -172,8 +172,8 @@ f00baron.Plane = function(params) {
 	// Rotate in deg/sec
 	var rotate_speed = 200;
 	
-	this.get_bbox = function() {
-		var bbox = this.element[0].getBBox();
+	var get_bbox = function() {
+		var bbox = self.element[0].getBBox();
 		return {
 			 height: bbox.height
 			,width: bbox.width
@@ -181,12 +181,13 @@ f00baron.Plane = function(params) {
 			,half_width: bbox.width / 2
 		}
 	}
+	var start_bbox = get_bbox();
 	
 	var respawn = function() {
 		// Flight parameters
 		self.heading = start_heading;
-		self.bbox = self.get_bbox();
-		self.pos = [start_pos[0], ground - self.bbox.half_height];
+		self.bbox = get_bbox();
+		self.pos = [start_pos[0], ground - start_bbox.half_height];
 		self.pitch = 0;
 		self.engine = false;
 		self.airborne = false;
@@ -331,9 +332,10 @@ f00baron.Plane = function(params) {
 				}
 			}
 		}
-		self.bbox = self.get_bbox();
+		self.bbox = get_bbox();
 		
 		// Check for out-of-bounds
+		/// Probably shouldn't be in here, ideally.
 		if (self.pos[1] < ceiling + self.bbox.half_height) {
 			self.stalled = true;
 		} else if (self.pos[1] > ground - self.bbox.half_height) {
