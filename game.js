@@ -19,7 +19,7 @@
 		newPosition: An object has a new position
 			target: <The object in question>
 		destroy: An object has been destroyed
-			target: <The plane in question>
+			target: <The object in question>
 	The following events will be triggered on a plane's DOM element
 		engineOn: A plane has switched its engine on
 			target: <The plane in question>
@@ -42,12 +42,37 @@ window.requestAnimationFrame = (function() {
 		|| window.oRequestAnimationFrame
 		|| window.msRequestAnimationFrame
 		|| function( callback ){
-			window.setTimeout(callback, 1000 / 60);
+			window.setTimeout(function(){callback(Date.now())}, 1000 / 60);
 		};
 })();
 
 
 f00baron = new Object();
+
+f00baron.getAbsolutePos = function(element) {
+	/*
+		Returns the root-space coordinates for given jQuery SVG element.
+		
+		Return value is an array of the form: [x,y]
+	*/
+	element = element[0];
+	if (element == undefined) {
+		throw new Error('Called getAbsolutePos on empty element set');
+	}
+	if (element.getScreenBBox != undefined) {
+		// Support for getScreenBBox is limited. :(
+		var bbox = element.getScreenBBox();
+		return [bbox.x + bbox.width/2, bbox.y + bbox.height/2];
+	}
+	// Create a root-space SVG point to work with
+	var svg = document.querySelector('svg');
+	var point = svg.createSVGPoint();
+	var matrix = element.getTransformToElement(svg);
+	point.x = element.x.animVal.value;
+	point.y = element.y.animVal.value;
+	point = point.matrixTransform(matrix);
+	return [point.x, point.y];
+}
 
 f00baron.Game = function(params) {
 	/*
@@ -116,9 +141,13 @@ f00baron.Game = function(params) {
 			if (event_type == undefined) {
 				return;
 			}
-			// Check for end of rotation
-			if (event.type == 'keyup' && event_type.search('rotate') == 0) {
-				event_type = 'rotateOff';
+			// Some effects change depending on keyup/keydown
+			if (event.type == 'keyup') {
+				if (event_type.search('rotate') == 0) {
+					event_type = 'rotateOff';
+				} else if (event_type == 'fire') {
+					return;
+				}
 			}
 			
 			jQuery(plane.element).trigger(event_type, {target: plane});
@@ -171,6 +200,8 @@ f00baron.Plane = function(params) {
 	var unstall_speed = 300;
 	// Rotate in deg/sec
 	var rotate_speed = 200;
+	// How much power (extra speed) our guns give to bullets fired
+	var dakka = 200;
 	
 	var get_bbox = function() {
 		var bbox = self.element[0].getBBox();
@@ -218,6 +249,33 @@ f00baron.Plane = function(params) {
 	});
 	jQuery(this.element).on('rotateOff', function(event) {
 		self.pitch = 0;
+	});
+	jQuery(this.element).on('fire', function(event) {
+		/*
+			Create a bullet in front of the plane, with the same velocity
+			vector.
+		*/
+		var b_vx, b_vy;
+		var radians = self.heading * (Math.PI / 180);
+		var sine = Math.sin(radians);
+		var cosine = Math.cos(radians);
+		b_vx = self.vx + (dakka * cosine);
+		b_vy = self.vy + (dakka * sine);
+		
+		// Clone the bullet template, and move it to root-space
+		var element = self.element.find('.bullet.template');
+		var b_pos = f00baron.getAbsolutePos(element);
+		element = element.clone().appendTo(jQuery('#board'));
+		element.removeClass('template');
+		element.attr('x', b_pos[0]);
+		element.attr('y', b_pos[1]);
+		
+		var bullet = new f00baron.Bullet({
+			 element: element
+			,velocity: [b_vx, b_vy]
+		});
+		
+		jQuery(window).trigger('newBullet', {source: self, bullet: bullet});
 	});
 	
 	jQuery(this.element).on('newPosition', function(event) {
@@ -343,6 +401,68 @@ f00baron.Plane = function(params) {
 		}
 		
 		jQuery(self.element).trigger('newPosition', {target: self});
+	});
+	
+}
+
+f00baron.Bullet = function(params) {
+	/*
+		Pew! Pew!
+		
+		params = {
+			element: [Array of: x, y]
+			velocity: [Array of: vx, vy]
+		}
+	*/
+	if ( !(this instanceof arguments.callee) ) 
+		throw new Error("I pity the fool who calls a constructor as a function!");
+	
+	var self = this;
+	
+	this.element = params.element;
+	this.element.data('f00baron.object', this);
+	
+	this.pos = [parseInt(this.element.attr('x')), parseInt(this.element.attr('y'))];
+	this.velocity = params.velocity;
+	
+	
+	var tick = function(event, params) {
+		/*
+			Bullets move every tick; that's about it.
+		*/
+		var dt = params.dt / 1000;
+		var dx = self.velocity[0] * dt;
+		var dy = self.velocity[1] * dt;
+		self.pos = [self.pos[0] + dx, self.pos[1] + dy];
+		
+		// Check for out-of-bounds
+		/// TODO: Move this check somewhere without hard-coded limits
+		var destroyed = false;
+		if (self.pos[0] < 0 || self.pos[0] > 1000) {
+			destroyed = true;
+		} else if (self.pos[1] < 0 || self.pos[1] > 1000) {
+			destroyed = true;
+		}
+		
+		if (destroyed) {
+			jQuery(self.element).trigger('destroy', {target: self});
+		} else {
+			jQuery(self.element).trigger('newPosition', {target: self});
+		}
+		
+	}
+	jQuery(window).on('tick', tick);
+	
+	jQuery(this.element).on('destroy', function(event) {
+		jQuery(window).off('tick', tick);
+		self.element.remove();
+	});
+	jQuery(this.element).on('newPosition', function(event) {
+		/*
+			Update the bullet's graphic
+		*/
+		self.element.attr('x', self.pos[0]);
+		self.element.attr('y', self.pos[1]);
 	});
 	
 }
