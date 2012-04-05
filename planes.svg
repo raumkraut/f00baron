@@ -24,7 +24,7 @@
 				gradientUnits="objectBoundingBox"
 				x1="0%" y1="0%" x2="0%" y2="100%"
 				>
-			<stop offset="0%" stop-color="#000" stop-opacity="0.4" />
+			<stop offset="0" stop-color="#000" stop-opacity="0.4" />
 			<stop offset="0.5" stop-color="#000" stop-opacity="1" />
 			<stop offset="1" stop-color="#000" stop-opacity="0.5" />
 		</linearGradient>
@@ -128,26 +128,42 @@
 					stroke-width="0"
 					>
 				<set id="animProp"
-						attributeType="css" attributeName="opacity"
+						attributeType="CSS" attributeName="opacity"
 						to="0.7"
 						begin="0s;animProp.end+0.1s"
 						dur="0.1s"
 						/>
-				<AanimateTransform id="animProp1"
-						attributeType="xml" attributeName="transform"
-						type="scale"
-						from="1,1" to="1,0.2"
-						begin="0s;animProp2.end"
-						dur="0.05s" fill="freeze"
-						/>
-				<AanimateTransform id="animProp2"
-						attributeType="xml" attributeName="transform"
-						type="scale"
-						from="1,0.2" to="1,1"
-						begin="animProp1.end"
-						dur="0.05s" fill="freeze"
-						/>
 			</rect>
+		</symbol>
+		
+		
+		<radialGradient id="gradient-bullet"
+				gradientUnits="objectBoundingBox"
+				cx="20%" cy="20%" r="90%"
+				spreadMethod="pad"
+				>
+			<stop offset="0" stop-color="#fff" />
+			<stop offset="0.1" stop-color="#fff" />
+			<stop offset="1" stop-color="#888" />
+		</radialGradient>
+		
+		<symbol id="bullet"
+				style="
+					overflow: visible;
+					fill: #fff;
+					stroke: #000;
+					stroke-width: 1;
+					stroke-linecap: round;
+					stroke-linejoin: miter;
+					"
+				>
+			<circle cx="0" cy="0" r="2"
+					fill="url(#gradient-bullet)"
+					stroke="none"
+					/>
+			<circle cx="0" cy="0" r="2"
+					fill="currentColor" fill-opacity="0.1"
+					/>
 		</symbol>
 	</defs>
 	
@@ -155,6 +171,11 @@
 	<use xlink:href="#plane-1"
 			style="color: #f00;"
 			x="100" y="100"
+			transform="scale(4)"
+			/>
+	<use xlink:href="#bullet"
+			style="color: #f00;"
+			x="126" y="96"
 			transform="scale(4)"
 			/>
 </svg>
