@@ -67,9 +67,13 @@ f00baron.getAbsolutePos = function(element) {
 	// Create a root-space SVG point to work with
 	var svg = document.querySelector('svg');
 	var point = svg.createSVGPoint();
+	if (element.nodeName != 'svg') {
+		// An SVG element's x and y are used in the matrix,
+		// so we don't want to use them here as well.
+		point.x = element.x.animVal.value;
+		point.y = element.y.animVal.value;
+	}
 	var matrix = element.getTransformToElement(svg);
-	point.x = element.x.animVal.value;
-	point.y = element.y.animVal.value;
 	point = point.matrixTransform(matrix);
 	return [point.x, point.y];
 }
