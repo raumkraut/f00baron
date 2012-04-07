@@ -153,6 +153,11 @@ f00baron.Game = function(params) {
 			if (event_type == undefined) {
 				return;
 			}
+			
+			// This key is a known control, so don't process it "normally"
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			
 			// Some effects change depending on keyup/keydown
 			if (event.type == 'keydown') {
 				switch (event_type) {
