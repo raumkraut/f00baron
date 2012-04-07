@@ -7,6 +7,7 @@
 		startGame: The games have begun!
 			game: <The relevant game object>
 		tick: Some time has passed in the game
+			now: <"Current" timestamp>
 			dt: <Normalised milliseconds since previous tick>
 		newPlane: A new challenger appears!
 			plane: <The relevant plane object>
@@ -31,7 +32,11 @@
 			target: <The plane in question>
 		rotateOff: A plane has stopped rotating
 			target: <The plane in question>
-		fire: A plane is firing
+		fireOn: A plane is firing
+			target: <The plane in question>
+		fireOff: A plane has stopped firing
+			target: <The plane in question>
+		fire: A plane is firing a bullet
 			target: <The plane in question>
 */
 // RequestAnimationFrame shim
@@ -114,7 +119,10 @@ f00baron.Game = function(params) {
 				dt = 50;
 			}
 			
-			jQuery(window).trigger('tick', {dt: dt});
+			jQuery(window).trigger('tick', {
+				 now: now
+				,dt: dt
+			});
 			
 			window.requestAnimationFrame(do_tick);
 		}
@@ -146,11 +154,21 @@ f00baron.Game = function(params) {
 				return;
 			}
 			// Some effects change depending on keyup/keydown
-			if (event.type == 'keyup') {
-				if (event_type.search('rotate') == 0) {
-					event_type = 'rotateOff';
-				} else if (event_type == 'fire') {
-					return;
+			if (event.type == 'keydown') {
+				switch (event_type) {
+					case 'fire':
+						event_type = 'fireOn';
+						break;
+				}
+			} else if (event.type == 'keyup') {
+				switch (event_type) {
+					case 'rotateCW':
+					case 'rotateACW':
+						event_type = 'rotateOff';
+						break;
+					case 'fire':
+						event_type = 'fireOff';
+						break;
 				}
 			}
 			
@@ -205,7 +223,9 @@ f00baron.Plane = function(params) {
 	// Rotate in deg/sec
 	var rotate_speed = 200;
 	// How much power (extra speed) our guns give to bullets fired
-	var dakka = 200;
+	var dakka = 400;
+	// Delay between bullet firings (ms)
+	var fire_interval = 1000;
 	
 	var get_bbox = function() {
 		var bbox = self.element[0].getBBox();
@@ -231,6 +251,9 @@ f00baron.Plane = function(params) {
 		self.speed = 0;
 		self.vx = 0;
 		self.vy = 0;
+		// Gunnery
+		self.firing = false;
+		self.last_fire = Date.now();
 	}
 	respawn();
 	
@@ -254,6 +277,13 @@ f00baron.Plane = function(params) {
 	jQuery(this.element).on('rotateOff', function(event) {
 		self.pitch = 0;
 	});
+	jQuery(this.element).on('fireOn', function(event) {
+		self.firing = true;
+	});
+	jQuery(this.element).on('fireOff', function(event) {
+		self.firing = false;
+	});
+	
 	jQuery(this.element).on('fire', function(event) {
 		/*
 			Create a bullet in front of the plane, with the same velocity
@@ -297,6 +327,7 @@ f00baron.Plane = function(params) {
 			Update the plane's position and whatnot.
 			
 			params = {
+				now: The "current" timestamp.
 				dt: The amount of time which has passed (milliseconds)
 			}
 		*/
@@ -405,6 +436,14 @@ f00baron.Plane = function(params) {
 		}
 		
 		jQuery(self.element).trigger('newPosition', {target: self});
+		
+		// Fire at will!
+		if (self.firing && self.airborne) {
+			if (self.last_fire + fire_interval < params.now) {
+				self.last_fire = params.now;
+				jQuery(self.element).trigger('fire', {target: self});
+			}
+		}
 	});
 	
 }
