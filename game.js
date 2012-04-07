@@ -21,6 +21,7 @@
 			target: <The object in question>
 		destroy: An object has been destroyed
 			target: <The object in question>
+			by: <What destroyed the object (optional)>
 	The following events will be triggered on a plane's DOM element
 		engineOn: A plane has switched its engine on
 			target: <The plane in question>
@@ -83,6 +84,7 @@ f00baron.getAbsolutePos = function(element) {
 	return [point.x, point.y];
 }
 
+
 f00baron.Game = function(params) {
 	/*
 		Class which processes the game logic.
@@ -96,8 +98,50 @@ f00baron.Game = function(params) {
 	if ( !(this instanceof arguments.callee) ) 
 		throw new Error("I pity the fool who calls a constructor as a function!");
 	
-	// Register event listeners
-	/// TODO
+	var planes = [];
+	
+	jQuery(window).on('newPlane', function(event, params) {
+		planes.push(params.plane);
+	});
+	
+	// Check for interactions
+	jQuery(window).on('newPosition', function(event, params) {
+		// Check if the target has collided with a plane.
+		if (params.target instanceof f00baron.Plane && !params.target.airborne) {
+			// Landed planes can't hit or be hit
+			return;
+		}
+		for (idx in planes) {
+			var other = planes[idx];
+			if (other === params.target) {
+				// Stop hitting yourself
+				continue;
+			} else if (other instanceof f00baron.Plane && !other.airborne) {
+				// You can't hit what isn't airborne
+				continue;
+			}
+			
+			// Determine angle from target to other
+			var dx = other.pos[0] - params.target.pos[0];
+			var dy = other.pos[1] - params.target.pos[1];
+			var angle = Math.atan2(dy, dx);
+			// Get minimum safe distance between objects
+			var cutoff = params.target.elliptical_radius(angle) + other.elliptical_radius(angle);
+			if ((dx*dx + dy*dy) < (cutoff * cutoff)) {
+				// Impact!
+				jQuery(params.target.element).trigger('destroy', {
+					 target: params.target
+					,by: other
+				});
+				jQuery(other.element).trigger('destroy', {
+					 target: other
+					,by: params.target
+				});
+			}
+			
+		}
+		
+	});
 	
 }
 	f00baron.Game.prototype.start = function() {
@@ -146,6 +190,8 @@ f00baron.Game = function(params) {
 			,x_min: 0
 			,x_max: 1000
 		});
+		jQuery(window).trigger('newPlane', {plane: plane});
+		
 		// Set up the controls
 		jQuery(window).on('keydown keyup', function(event) {
 			// Map keycode to control params
@@ -261,6 +307,25 @@ f00baron.Plane = function(params) {
 		self.last_fire = Date.now();
 	}
 	respawn();
+	
+	this.elliptical_radius = function(angle) {
+		/*
+			Returns the radius of an approximate ellipse around the plane,
+			at the given angle IN RADIANS.
+			
+			r = (a*b) / sqrt((b*cosØ)² + (a*sinØ)²)
+		*/
+		var a = width / 2;
+		var b = height / 2;
+		var theta = angle - (self.heading * Math.PI/180);
+		
+		var bcos = b * Math.cos(theta);
+		var asin = a * Math.sin(theta);
+		var den = Math.sqrt(Math.pow(bcos, 2) + Math.pow(asin, 2))
+		var num = a * b
+		
+		return num/den;
+	}
 	
 	// Register event listeners
 	jQuery(this.element).on('destroy', function(event) {
@@ -470,9 +535,17 @@ f00baron.Bullet = function(params) {
 	this.element = params.element;
 	this.element.data('f00baron.object', this);
 	
+	this.size = this.element[0].getBBox().width;
 	this.pos = [parseInt(this.element.attr('x')), parseInt(this.element.attr('y'))];
 	this.velocity = params.velocity;
 	
+	this.elliptical_radius = function(angle) {
+		/*
+			The elliptical radius of this bullet, at the given angle
+			IN RADIANS.
+		*/
+		return self.size;
+	}
 	
 	var tick = function(event, params) {
 		/*
