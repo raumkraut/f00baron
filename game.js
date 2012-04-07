@@ -15,7 +15,8 @@
 			source: <The firing plane object>
 			bullet: <The relevant bullet object>
 		explosion: BOOM! HEADSHOT!
-			pos: [Coordinates of explosion]
+			x: <x-coord of explosion>
+			y: <y-coord of explosion>
 	The following events will be triggered on an object's DOM element
 		newPosition: An object has a new position
 			target: <The object in question>
@@ -122,8 +123,8 @@ f00baron.Game = function(params) {
 			}
 			
 			// Determine angle from target to other
-			var dx = other.pos[0] - params.target.pos[0];
-			var dy = other.pos[1] - params.target.pos[1];
+			var dx = other.x - params.target.x;
+			var dy = other.y - params.target.y;
 			var angle = Math.atan2(dy, dx);
 			// Get minimum safe distance between objects
 			var cutoff = params.target.elliptical_radius(angle) + other.elliptical_radius(angle);
@@ -293,7 +294,8 @@ f00baron.Plane = function(params) {
 		// Flight parameters
 		self.heading = start_heading;
 		self.bbox = get_bbox();
-		self.pos = [start_pos[0], ground - start_bbox.half_height];
+		self.x = start_pos[0];
+		self.y = ground - start_bbox.half_height;
 		self.pitch = 0;
 		self.engine = false;
 		self.airborne = false;
@@ -329,7 +331,7 @@ f00baron.Plane = function(params) {
 	
 	// Register event listeners
 	jQuery(this.element).on('destroy', function(event) {
-		jQuery(window).trigger('explosion', {pos: self.pos});
+		jQuery(window).trigger('explosion', {x: self.x, y: self.y});
 		respawn();
 	});
 	jQuery(this.element).on('engineOn', function(event) {
@@ -376,7 +378,8 @@ f00baron.Plane = function(params) {
 		
 		var bullet = new f00baron.Bullet({
 			 element: element
-			,velocity: [b_vx, b_vy]
+			,vx: b_vx
+			,vy: b_vy
 		});
 		
 		jQuery(window).trigger('newBullet', {source: self, bullet: bullet});
@@ -386,8 +389,8 @@ f00baron.Plane = function(params) {
 		/*
 			Updates the plane's graphical element.
 		*/
-		self.element.attr('x', self.pos[0]);
-		self.element.attr('y', self.pos[1]);
+		self.element.attr('x', self.x);
+		self.element.attr('y', self.y);
 		var transform = 'rotate(' + self.heading + ')';
 		self.element.find('.rotator').attr('transform', transform);
 	});
@@ -464,14 +467,15 @@ f00baron.Plane = function(params) {
 		// Update position/rotation
 		dx = self.vx * dt;
 		dy = self.vy * dt;
-		self.pos = [self.pos[0] + dx, self.pos[1] + dy];
+		self.x += dx;
+		self.y += dy;
 		self.heading += dr;
 		
 		// Normalise position
-		if (self.pos[0] < x_min) {
-			self.pos[0] = x_max;
-		} else if (self.pos[0] > x_max) {
-			self.pos[0] = x_min;
+		if (self.x < x_min) {
+			self.x = x_max;
+		} else if (self.x > x_max) {
+			self.x = x_min;
 		}
 		// Normalise rotation
 		if (self.heading < 0) {
@@ -499,9 +503,9 @@ f00baron.Plane = function(params) {
 		
 		// Check for out-of-bounds
 		/// Probably shouldn't be in here, ideally.
-		if (self.pos[1] < ceiling + self.bbox.half_height) {
+		if (self.y < ceiling + self.bbox.half_height) {
 			self.stalled = true;
-		} else if (self.pos[1] > ground - self.bbox.half_height) {
+		} else if (self.y > ground - self.bbox.half_height) {
 			jQuery(self.element).trigger('destroy', {target: self});
 		}
 		
@@ -523,8 +527,9 @@ f00baron.Bullet = function(params) {
 		Pew! Pew!
 		
 		params = {
-			element: [Array of: x, y]
-			velocity: [Array of: vx, vy]
+			element: <jQuery-wrapped DOM element>
+			vx: <Initial x-velocity>
+			vy: <Initial y-velocity>
 		}
 	*/
 	if ( !(this instanceof arguments.callee) ) 
@@ -536,8 +541,10 @@ f00baron.Bullet = function(params) {
 	this.element.data('f00baron.object', this);
 	
 	this.size = this.element[0].getBBox().width;
-	this.pos = [parseInt(this.element.attr('x')), parseInt(this.element.attr('y'))];
-	this.velocity = params.velocity;
+	this.x = parseInt(this.element.attr('x'));
+	this.y = parseInt(this.element.attr('y'));
+	this.vx = params.vx;
+	this.vy = params.vy;
 	
 	this.elliptical_radius = function(angle) {
 		/*
@@ -552,16 +559,15 @@ f00baron.Bullet = function(params) {
 			Bullets move every tick; that's about it.
 		*/
 		var dt = params.dt / 1000;
-		var dx = self.velocity[0] * dt;
-		var dy = self.velocity[1] * dt;
-		self.pos = [self.pos[0] + dx, self.pos[1] + dy];
+		self.x += self.vx * dt;
+		self.y += self.vy * dt;
 		
 		// Check for out-of-bounds
 		/// TODO: Move this check somewhere without hard-coded limits
 		var destroyed = false;
-		if (self.pos[0] < 0 || self.pos[0] > 1000) {
+		if (self.x < 0 || self.x > 1000) {
 			destroyed = true;
-		} else if (self.pos[1] < 0 || self.pos[1] > 1000) {
+		} else if (self.y < 0 || self.y > 1000) {
 			destroyed = true;
 		}
 		
@@ -582,8 +588,8 @@ f00baron.Bullet = function(params) {
 		/*
 			Update the bullet's graphic
 		*/
-		self.element.attr('x', self.pos[0]);
-		self.element.attr('y', self.pos[1]);
+		self.element.attr('x', self.x);
+		self.element.attr('y', self.y);
 	});
 	
 }
