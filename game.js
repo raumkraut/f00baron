@@ -102,7 +102,8 @@ f00baron.Game = function(params) {
 	if ( !(this instanceof arguments.callee) ) 
 		throw new Error("I pity the fool who calls a constructor as a function!");
 	
-	var planes = [];
+	// Array of informational objects. Array index is player_id
+	var players = [];
 	
 	// Create the clouds
 	params.clouds.each(function(idx) {
@@ -125,7 +126,7 @@ f00baron.Game = function(params) {
 	});
 	
 	jQuery(window).on('newPlane', function(event, params) {
-		planes.push(params.plane);
+		players[params.plane.player].plane = params.plane;
 	});
 	
 	// Check for interactions
@@ -134,8 +135,8 @@ f00baron.Game = function(params) {
 		if (!params.target.collidable) {
 			return;
 		}
-		for (idx in planes) {
-			var other = planes[idx];
+		for (idx in players) {
+			var other = players[idx].plane;
 			if (other === params.target) {
 				// Stop hitting yourself
 				continue;
@@ -166,48 +167,26 @@ f00baron.Game = function(params) {
 		
 	});
 	
-}
-	f00baron.Game.prototype.start = function() {
-		/*
-			Start the game running.
-			
-			params = {
-			}
-		*/
-		var prev_tick = Date.now();
-		var do_tick = function(now) {
-			var dt = now - prev_tick;
-			prev_tick = now;
-			
-			// Lock the dt between bounds
-			if (dt < 0) {
-				dt = 0;
-			} else if (dt > 50) {
-				dt = 50;
-			}
-			
-			jQuery(window).trigger('tick', {
-				 now: now
-				,dt: dt
-			});
-			
-			window.requestAnimationFrame(do_tick);
-		}
-		// The first tick
-		jQuery(window).trigger('startGame', {game:this});
-		do_tick(prev_tick);
-	}
-	f00baron.Game.prototype.add_player = function(params) {
+	this.add_player = function(params) {
 		/*
 			Add a player to the game.
 			
 			params = {
 				element: <The jQuery-wrapped DOM element.>
 				controls: {a mapping of keycode: eventType for this player}
+				scoreboard: <jQuery-wrapped scoreboard element>
 			}
 		*/
+		var player_id = players.length;
+		var info = {
+			 score: 0
+			,scoreboard: params.scoreboard
+		}
+		players[player_id] = info;
+		
 		var plane = new f00baron.Plane({
 			 element: params.element
+			,player: player_id
 			,ground: 950
 			,ceiling: 0
 			,x_min: 0
@@ -249,7 +228,54 @@ f00baron.Game = function(params) {
 			jQuery(plane.element).trigger(event_type, {target: plane});
 		});
 		
+		jQuery(plane.element).on('destroy', function(event, params) {
+			// A plane has been destroyed!
+			var info = players[player_id];
+			if (!params.by) {
+				info.score -= 1;
+			} else if (params.by.player == player_id) {
+				info.score -= 1;
+			} else {
+				info = players[params.by.player];
+				info.score += 1;
+			}
+			
+			info.scoreboard.text(info.score);
+		});
 	}
+	
+}
+	f00baron.Game.prototype.start = function() {
+		/*
+			Start the game running.
+			
+			params = {
+			}
+		*/
+		var prev_tick = Date.now();
+		var do_tick = function(now) {
+			var dt = now - prev_tick;
+			prev_tick = now;
+			
+			// Lock the dt between bounds
+			if (dt < 0) {
+				dt = 0;
+			} else if (dt > 50) {
+				dt = 50;
+			}
+			
+			jQuery(window).trigger('tick', {
+				 now: now
+				,dt: dt
+			});
+			
+			window.requestAnimationFrame(do_tick);
+		}
+		// The first tick
+		jQuery(window).trigger('startGame', {game:this});
+		do_tick(prev_tick);
+	}
+
 
 f00baron.Plane = function(params) {
 	/*
@@ -257,6 +283,7 @@ f00baron.Plane = function(params) {
 		
 		params = {
 			element: The jQuery element representing this plane.
+			player: The player to whom this plane belongs
 			ground: The scene's ground level.
 			ceiling: The scene's flight ceiling.
 			x_min: The minimum X coordinate.
@@ -270,6 +297,7 @@ f00baron.Plane = function(params) {
 	
 	this.element = params.element;
 	this.element.data('f00baron.object', this);
+	this.player = params.player
 	
 	var start_pos = [parseInt(this.element.attr('x')), parseInt(this.element.attr('y'))];
 	var start_heading = this.element.find('.rotator').attr('transform');
@@ -403,6 +431,7 @@ f00baron.Plane = function(params) {
 		
 		var bullet = new f00baron.Bullet({
 			 element: element
+			,player: self.player
 			,vx: b_vx
 			,vy: b_vy
 		});
@@ -565,6 +594,7 @@ f00baron.Bullet = function(params) {
 	
 	this.element = params.element;
 	this.element.data('f00baron.object', this);
+	this.player = params.player;
 	this.collidable = true;
 	
 	this.size = this.element[0].getBBox().width;
