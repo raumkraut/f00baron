@@ -51,19 +51,6 @@
 	<script type="text/ecmascript" xlink:href="game.js"></script>
 	<script type="text/ecmascript">
 		//<![CDATA[
-		
-		// Randomise cloud positions
-		jQuery(document).on('beginEvent repeatEvent', '.cloud', function(event) {
-			var cloud = jQuery(this);
-			var shape = cloud.find('use');
-			// Pick a new y-value (between 200 and 600) for the next pass
-			var new_y = 200 + (Math.random() * 400);
-			cloud.attr('y', Math.floor(new_y));
-			// Pick a new duration (10-60s)
-			var new_dur = 10 + (Math.random() * 50);
-			cloud.find('animate').attr('dur', Math.floor(new_dur));
-		});
-		
 		// window..load because document..ready doesn't work for SVG
 		jQuery(window).load(function() {
 			// Init game
