@@ -9,6 +9,8 @@
 		tick: Some time has passed in the game
 			now: <"Current" timestamp>
 			dt: <Normalised milliseconds since previous tick>
+		newCloud: A new cloud has been created
+			cloud: <The new cloud object>
 		newPlane: A new challenger appears!
 			plane: <The relevant plane object>
 		newBullet: You're fired!
@@ -94,12 +96,33 @@ f00baron.Game = function(params) {
 		be instantiated and interacted with by document javascript.
 		
 		params = {
+			clouds: <jQuery-wrapped list of clouds elements>
 		}
 	*/
 	if ( !(this instanceof arguments.callee) ) 
 		throw new Error("I pity the fool who calls a constructor as a function!");
 	
 	var planes = [];
+	
+	// Create the clouds
+	params.clouds.each(function(idx) {
+		var element = jQuery(this);
+		var bbox = this.getBBox();
+		var half_height = bbox.height / 2;
+		var half_width = bbox.width / 2;
+		var cloud = new f00baron.Cloud({
+			 element: element
+			,x_min: 0 - half_width
+			,x_max: 1000 + half_width
+			,y_min: 200
+			,y_max: 600
+			// Transition time range (sec)
+			,t_min: 10
+			,t_max: 60
+		});
+		jQuery(window).trigger('newCloud', {cloud: cloud});
+		
+	});
 	
 	jQuery(window).on('newPlane', function(event, params) {
 		planes.push(params.plane);
@@ -108,8 +131,7 @@ f00baron.Game = function(params) {
 	// Check for interactions
 	jQuery(window).on('newPosition', function(event, params) {
 		// Check if the target has collided with a plane.
-		if (params.target instanceof f00baron.Plane && !params.target.airborne) {
-			// Landed planes can't hit or be hit
+		if (!params.target.collidable) {
 			return;
 		}
 		for (idx in planes) {
@@ -117,8 +139,8 @@ f00baron.Game = function(params) {
 			if (other === params.target) {
 				// Stop hitting yourself
 				continue;
-			} else if (other instanceof f00baron.Plane && !other.airborne) {
-				// You can't hit what isn't airborne
+			} else if (!other.collidable) {
+				// You can't hit what can't be hit
 				continue;
 			}
 			
@@ -307,6 +329,8 @@ f00baron.Plane = function(params) {
 		// Gunnery
 		self.firing = false;
 		self.last_fire = Date.now();
+		// Interaction
+		self.collidable = false;
 	}
 	respawn();
 	
@@ -442,6 +466,7 @@ f00baron.Plane = function(params) {
 				self.vy = 0;
 			} else if (self.vy < 0) {
 				self.airborne = true;
+				self.collidable = true;
 			} else {
 				self.vy = 0;
 			}
@@ -539,6 +564,7 @@ f00baron.Bullet = function(params) {
 	
 	this.element = params.element;
 	this.element.data('f00baron.object', this);
+	this.collidable = true;
 	
 	this.size = this.element[0].getBBox().width;
 	this.x = parseInt(this.element.attr('x'));
@@ -592,4 +618,64 @@ f00baron.Bullet = function(params) {
 		self.element.attr('y', self.y);
 	});
 	
+}
+
+
+f00baron.Cloud = function(params) {
+	/*
+		A cloud, floating gently across the sky, and blocking sight.
+		
+		params = {
+			element: <jQuery-wrapped DOM element>
+			x_min,x_max,y_min,y_max: <Define the random position limits>
+			t_min,t_max: <Define the transition time range>
+	*/
+	if ( !(this instanceof arguments.callee) ) 
+		throw new Error("I pity the fool who calls a constructor as a function!");
+	
+	var self = this;
+	this.element = params.element;
+	this.collidable = false;
+	// The constants
+	var x_min = params.x_min;
+	var x_max = params.x_max;
+	var x_range = x_max - x_min
+	var y_min = params.y_min;
+	var y_max = params.y_max;
+	var y_range = y_max - y_min;
+	var t_min = params.t_min;
+	var t_max = params.t_max;
+	var t_range = t_max - t_min;
+	// Now the variables
+	this.x = -1000;
+	this.y = 0;
+	this.vx = 0;
+	
+	jQuery(window).on('tick', function(event, params) {
+		var dt = params.dt / 1000;
+		// Update position
+		self.x += self.vx * dt;
+		
+		// Check for out-of-bounds
+		if (self.x < x_min || self.x > x_max) {
+			// Randomise velocity
+			var dur = t_min + (Math.random() * t_range);
+			self.vx = x_range / dur;
+			// Randomise starting side
+			if (Math.random() > 0.5) {
+				self.x = x_max;
+				self.vx *= -1;
+			} else {
+				self.x = x_min;
+			}
+			// Randomise starting height
+			self.y = y_min + (Math.random() * y_range);
+			
+		}
+		jQuery(self.element).trigger('newPosition', {target:self});
+	});
+	jQuery(this.element).on('newPosition', function(event) {
+		self.element.attr('x', self.x);
+		self.element.attr('y', self.y);
+	});
 }

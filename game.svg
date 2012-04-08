@@ -67,7 +67,7 @@
 		// window..load because document..ready doesn't work for SVG
 		jQuery(window).load(function() {
 			// Init game
-			var game = new f00baron.Game();
+			var game = new f00baron.Game({clouds: jQuery('.cloud')});
 			game.add_player({
 				 element: jQuery('#player1')
 				,controls: {
@@ -234,33 +234,18 @@
 	
 	<g id="foreground">
 		<g id="clouds">
-			<svg class="cloud" overflow="visible" y="200">
-				<use xlink:href="clouds.svg#cloud-2" />
-				<animate id="c1a1"
-						attributeType="XML" attributeName="x"
-						from="1200" to="-200"
-						begin="0s;c1a1.end"
-						dur="30s" fill="freeze"
-						/>
-			</svg>
-			<svg class="cloud" overflow="visible" y="600">
-				<use xlink:href="clouds.svg#cloud-2" />
-				<animate id="c2a1"
-						attributeType="XML" attributeName="x"
-						from="-200" to="1200"
-						begin="0s;c2a1.end"
-						dur="25s" fill="freeze"
-						/>
-			</svg>
-			<svg class="cloud" overflow="visible" y="400">
-				<use xlink:href="clouds.svg#cloud-2" />
-				<animate id="c3a1"
-						attributeType="XML" attributeName="x"
-						from="1200" to="-200"
-						begin="0s;c3a1.end"
-						dur="20s" fill="freeze"
-						/>
-			</svg>
+			<use xlink:href="clouds.svg#cloud-2"
+					class="cloud"
+					x="-1000"
+					/>
+			<use xlink:href="clouds.svg#cloud-2"
+					class="cloud"
+					x="-1000"
+					/>
+			<use xlink:href="clouds.svg#cloud-2"
+					class="cloud"
+					x="-1000"
+					/>
 		</g>
 		
 		<rect id="ground"
