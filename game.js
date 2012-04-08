@@ -288,18 +288,19 @@ f00baron.Plane = function(params) {
 	// Plane attributes
 	// Power/gravity is speed/sec from the engine
 	var gravity = 350;
-	var thrust = 200;
+	var thrust = 300;
 	// Drag is ratio/sec
-	var drag = 0.6;
-	var stall_speed = 100;
-	// Gravity has no (net) effect above the unstall_speed
+	var drag = 0.8;
+	var stall_speed = 150;
 	var unstall_speed = 300;
+	// Gravity has no effect over lift_speed
+	var lift_speed = 500;
 	// Rotate in deg/sec
 	var rotate_speed = 200;
 	// How much power (extra speed) our guns give to bullets fired
 	var dakka = 400;
 	// Delay between bullet firings (ms)
-	var fire_interval = 1000;
+	var fire_interval = 400;
 	
 	var get_bbox = function() {
 		var bbox = self.element[0].getBBox();
@@ -450,12 +451,12 @@ f00baron.Plane = function(params) {
 		var h_speed = Math.abs(self.vx);
 		
 		// Apply gravity
-		// Gravity has no effect when |vx| > unstall_speed
-		if (h_speed < unstall_speed) {
-			// ...and is graduated between stall_speed and unstall_speed
+		// Gravity has no effect when |vx| > lift_speed
+		if (h_speed < lift_speed) {
+			// ...and is graduated between stall_speed and lift_speed
 			var grabbity = 1;
 			if (h_speed > stall_speed) {
-				grabbity -= (h_speed - stall_speed) / (unstall_speed - stall_speed);
+				grabbity -= (h_speed - stall_speed) / (lift_speed - stall_speed);
 			}
 			self.vy += gravity * grabbity * dt;
 		}
