@@ -197,13 +197,161 @@
 	</g>
 	
 	<g id="board">
+		<defs id="defs_plane">
+			<linearGradient id="gradient-prop"
+					gradientUnits="objectBoundingBox"
+					x1="0%" y1="0%" x2="0%" y2="100%"
+					>
+				<stop offset="0" stop-color="#000" stop-opacity="0.4" />
+				<stop offset="0.5" stop-color="#000" stop-opacity="1" />
+				<stop offset="1" stop-color="#000" stop-opacity="0.5" />
+			</linearGradient>
+			
+			<symbol id="symbol-plane"
+					style="
+						overflow: visible;
+						fill: #fff;
+						stroke: #000;
+						stroke-width: 1;
+						stroke-linecap: round;
+						stroke-linejoin: miter;
+						"
+					>
+				<circle class="pilot"
+						style="fill: #a62;"
+						cx="1" cy="-4"
+						r="2.5"
+						/>
+				<line class="machinery"
+						x1="10" y1="4"
+						x2="12" y2="9"
+						/>
+				<line class="machinery"
+						x1="15" y1="4"
+						x2="12" y2="9"
+						/>
+				<circle class="machinery wheel"
+						style="fill: #888;"
+						cx="12" cy="9"
+						r="2"
+						/>
+				<path class="fuselage"
+						d="M -4,-4
+							q 4,4 10,0
+							L 18,-4
+							q 1,0, 2,2
+							l 0,4
+							q 0,1 -2,2
+							L -10,4
+							Q -20,2 -20,-3
+							l 0,-2
+							q 4,-8 8,2
+							Z"
+						style="stroke-width: 1;"
+						fill="currentColor"
+						/>
+				<path class="wing"
+						d="
+							M -18,0
+							q -3,-1 0,-2
+							l 5,0
+							q 3,1 0,2
+							Z"
+						style="stroke-width: 1;"
+						fill="currentColor"
+						/>
+				<rect class="machinery gun"
+						style="fill: #888; stroke-width: 1;"
+						x="8" y="-6" width="10" height="3"
+						/>
+				<line class="machinery"
+						style="stroke-width: 1;"
+						x1="3" y1="3" x2="8" y2="-10"
+						/>
+				<line class="machinery"
+						style="stroke-width: 1;"
+						x1="11" y1="3" x2="16" y2="-10"
+						/>
+				<path class="wing"
+						d="
+							M 7,-8
+							q -3,-1 0,-3
+							l 10,-1
+							q 3,2 0,4
+							Z"
+						style="stroke-width: 1;"
+						fill="currentColor"
+						/>
+				<path class="wing"
+						d="
+							M 2,5
+							q -3,-1 0,-3
+							l 10,-1
+							q 3,2 0,4
+							Z"
+						style="stroke-width: 1;"
+						fill="currentColor"
+						/>
+				<path class="machinery"
+						style="fill: #888; stroke-width: 1;"
+						d="M 20,-2
+							a 2,2 0 0,1 0,4
+							"
+						/>
+				<rect class="machinery propellor"
+						style="stroke-width: 0;"
+						x="20.5" y="-6" width="1.5" height="12"
+						fill="url(#gradient-prop)"
+						stroke="none"
+						stroke-width="0"
+						>
+					<set id="animProp"
+							attributeType="CSS" attributeName="opacity"
+							to="0.7"
+							begin="0s;animProp.end+0.1s"
+							dur="0.1s"
+							/>
+				</rect>
+			</symbol>
+		</defs>
+		<defs id="defs_bullet">
+			<radialGradient id="gradient-bullet"
+					gradientUnits="objectBoundingBox"
+					cx="20%" cy="20%" r="90%"
+					spreadMethod="pad"
+					>
+				<stop offset="0" stop-color="#fff" />
+				<stop offset="0.1" stop-color="#fff" />
+				<stop offset="1" stop-color="#888" />
+			</radialGradient>
+			
+			<symbol id="symbol-bullet"
+					style="
+						overflow: visible;
+						fill: #fff;
+						stroke: #000;
+						stroke-width: 1;
+						stroke-linecap: round;
+						stroke-linejoin: miter;
+						"
+					>
+				<circle cx="0" cy="0" r="2"
+						fill="url(#gradient-bullet)"
+						stroke="none"
+						/>
+				<circle cx="0" cy="0" r="2"
+						fill="currentColor" fill-opacity="0.1"
+						/>
+			</symbol>
+		</defs>
+		
 		<svg id="player1"
 				class="player1"
 				x="50" y="935"
 				overflow="visible">
 			<g class="rotator" transform="rotate(-10)">
 				<g class="sizer">
-					<use xlink:href="planes.svg#plane-1"
+					<use xlink:href="#symbol-plane"
 							class="plane scaler"
 							transform="scale(1.5)"
 							/>
@@ -213,7 +361,7 @@
 						overflow="visible"
 						>
 					<g class="sizer">
-						<use xlink:href="planes.svg#bullet"
+						<use xlink:href="#symbol-bullet"
 								class="scaler"
 								transform="scale(2)"
 								/>
@@ -227,7 +375,7 @@
 				overflow="visible">
 			<g class="rotator" transform="rotate(190)">
 				<g class="sizer">
-					<use xlink:href="planes.svg#plane-1"
+					<use xlink:href="#symbol-plane"
 							class="plane scaler"
 							transform="scale(1.5, -1.5)"
 							/>
@@ -237,7 +385,7 @@
 						overflow="visible"
 						>
 					<g class="sizer">
-						<use xlink:href="planes.svg#bullet"
+						<use xlink:href="#symbol-bullet"
 								class="scaler"
 								transform="scale(2)"
 								/>
@@ -355,15 +503,65 @@
 		<g id="explosions">
 		</g>
 		<g id="clouds">
-			<use xlink:href="clouds.svg#cloud-2"
+			<defs>
+				<symbol id="symbol-cloud"
+						style="
+							overflow: visible;
+							fill: #fff;
+							stroke: #000;
+							stroke-width: 5;
+							stroke-linecap: round;
+							stroke-linejoin: miter;
+							"
+						>
+					<path d="M -100,30
+								q -30,-10 -15,-40
+								q -10,-30 20,-40
+								q 10,-30 40,-20
+								q 30,-20 50,5
+								q 30,-20 50,10
+								q 35,-10 40,20
+								q 35,-5 30,30
+								q 25,20 0,40
+								q 5,25 -25,25
+								q -20,25 -45,5
+								q -20,20 -40,0
+								q -20,25 -40,5
+								q -25,15 -40,-10
+								Q -110,55 -100,30
+								Z"
+							/>
+					<path d="M -80,0
+								q -5,-15 10,-20
+								q 0,-25 20,-20
+								q 10,-20 30,-5
+								"
+							/>
+					<path d="M 40,40
+								q 20,10 25,-10
+								q 25,0 20,-25
+								"
+							/>
+					<path d="M -40,30
+								q 15,15 30,5
+								"
+							/>
+					<path d="M 10,-10
+								q 15,-20 30,-10
+								"
+							/>
+				</symbol>
+			</defs>
+			
+			<use xlink:href="#symbol-cloud"
 					class="cloud"
 					x="-1000"
 					/>
-			<use xlink:href="clouds.svg#cloud-2"
+			<use xlink:href="#symbol-cloud"
 					class="cloud"
 					x="-1000"
 					/>
-			<use xlink:href="clouds.svg#cloud-2"
+			<use xlink:href="#symbol-cloud"
 					class="cloud"
 					x="-1000"
 					/>
