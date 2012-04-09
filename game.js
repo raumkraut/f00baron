@@ -97,6 +97,7 @@ f00baron.Game = function(params) {
 		
 		params = {
 			clouds: <jQuery-wrapped list of clouds elements>
+			explosion: <jQuery-wrapped explosion template element>
 		}
 	*/
 	if ( !(this instanceof arguments.callee) ) 
@@ -123,6 +124,18 @@ f00baron.Game = function(params) {
 		});
 		jQuery(window).trigger('newCloud', {cloud: cloud});
 		
+	});
+	
+	var explosion = params.explosion.clone().detach();
+	explosion.removeClass('template');
+	jQuery(window).on('explosion', function(event, params) {
+		var element = explosion.clone();
+		element.appendTo(jQuery('#explosions'));
+		var explodey = new f00baron.Explosion({
+			 element: element
+			,x: params.x
+			,y: params.y
+		});
 	});
 	
 	jQuery(window).on('newPlane', function(event, params) {
@@ -709,4 +722,56 @@ f00baron.Cloud = function(params) {
 		self.element.attr('x', self.x);
 		self.element.attr('y', self.y);
 	});
+}
+
+f00baron.Explosion = function(params) {
+	/*
+		BOOM!
+		
+		params = {
+			element: <jQuery-wrapped DOM element representing the boom>
+			x,y: <Coordinates of the explosion>
+		}
+	*/
+	if ( !(this instanceof arguments.callee) ) 
+		throw new Error("I pity the fool who calls a constructor as a function!");
+	
+	var self = this;
+	self.element = params.element;
+	self.x = params.x;
+	self.y = params.y;
+	self.collidable = false;
+	
+	self.element.attr('x', self.x);
+	self.element.attr('y', self.y);
+	
+	// Give a unique ID to the element which begins all the animations
+	var starter = self.element.find('.anim-start');
+	var starter_id = 'f00baron_anim_' + Date.now();
+	starter.attr('id', starter_id);
+	// Update any element which relies on the starter for timing
+	self.element.find('[begin^=f00baron]').each(function() {
+		var anim = jQuery(this);
+		var begin = anim.attr('begin');
+		begin = begin.replace('f00baron_start', starter_id);
+		anim.attr('begin', begin);
+	});
+	
+	// Randomise the direction of rotations
+	self.element.find('.rotator').each(function() {
+		if (Math.random() > 0.5) {
+			var rotator = jQuery(this);
+			var from = rotator.attr('from');
+			rotator.attr('from', rotator.attr('to'));
+			rotator.attr('to', from);
+		}
+	});
+	starter[0].beginElement();
+	
+	self.element.find('.anim-end').on('endEvent', function(event) {
+		self.element.remove();
+	});
+	// Backup removal
+	window.setTimeout(function() {self.element.remove()}, 10000);
+	
 }
