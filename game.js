@@ -460,6 +460,16 @@ f00baron.Plane = function(params) {
 		self.element.attr('y', self.y);
 		var transform = 'rotate(' + self.heading + ')';
 		self.element.find('.rotator').attr('transform', transform);
+		self.bbox = get_bbox();
+		
+		// Check for out-of-bounds
+		/// Should this be in here?
+		if (self.y < ceiling + self.bbox.half_height) {
+			self.stalled = true;
+		} else if (self.y > ground - self.bbox.half_height) {
+			jQuery(self.element).trigger('destroy', {target: self});
+		}
+		
 	});
 	
 	jQuery(window).on('tick', function(event, params) {
@@ -567,16 +577,6 @@ f00baron.Plane = function(params) {
 				}
 			}
 		}
-		self.bbox = get_bbox();
-		
-		// Check for out-of-bounds
-		/// Probably shouldn't be in here, ideally.
-		if (self.y < ceiling + self.bbox.half_height) {
-			self.stalled = true;
-		} else if (self.y > ground - self.bbox.half_height) {
-			jQuery(self.element).trigger('destroy', {target: self});
-		}
-		
 		jQuery(self.element).trigger('newPosition', {target: self});
 		
 		// Fire at will!
