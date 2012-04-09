@@ -55,7 +55,8 @@
 		jQuery(window).load(function() {
 			// Init game
 			var game = new f00baron.Game({
-				 clouds: jQuery('#clouds .cloud')
+				 ground: jQuery('#ground')
+				,clouds: jQuery('#clouds .cloud')
 				,explosion: jQuery('.explosion.template')
 			});
 			game.add_player({

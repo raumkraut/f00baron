@@ -96,12 +96,17 @@ f00baron.Game = function(params) {
 		be instantiated and interacted with by document javascript.
 		
 		params = {
+			ground: <jQuery-wrapped ground element>
 			clouds: <jQuery-wrapped list of clouds elements>
 			explosion: <jQuery-wrapped explosion template element>
 		}
 	*/
 	if ( !(this instanceof arguments.callee) ) 
 		throw new Error("I pity the fool who calls a constructor as a function!");
+	
+	var self = this;
+	
+	var ground = params.ground[0].getBBox().y;
 	
 	// Array of informational objects. Array index is player_id
 	var players = [];
@@ -200,7 +205,7 @@ f00baron.Game = function(params) {
 		var plane = new f00baron.Plane({
 			 element: params.element
 			,player: player_id
-			,ground: 950
+			,ground: ground
 			,ceiling: 0
 			,x_min: 0
 			,x_max: 1000
@@ -466,7 +471,7 @@ f00baron.Plane = function(params) {
 		/// Should this be in here?
 		if (self.y < ceiling + self.bbox.half_height) {
 			self.stalled = true;
-		} else if (self.y > ground - self.bbox.half_height) {
+		} else if (self.airborne && self.y > ground - self.elliptical_radius(Math.PI/2)) {
 			jQuery(self.element).trigger('destroy', {target: self});
 		}
 		
@@ -514,13 +519,14 @@ f00baron.Plane = function(params) {
 		}
 		
 		if (!self.airborne) {
-			// Have we taken off yet?
+			// Are we clear of the runway yet?
+			self.y = ground - self.elliptical_radius(Math.PI/2);
 			if (h_speed < stall_speed) {
 				self.vy = 0;
 			} else if (self.vy < 0) {
 				self.airborne = true;
 				self.collidable = true;
-			} else {
+			} else if (self.vy > 0) {
 				self.vy = 0;
 			}
 		}
@@ -772,6 +778,6 @@ f00baron.Explosion = function(params) {
 		self.element.remove();
 	});
 	// Backup removal
-	window.setTimeout(function() {self.element.remove()}, 10000);
+	window.setTimeout(function() {self.element.remove()}, 5000);
 	
 }
