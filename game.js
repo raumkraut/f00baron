@@ -787,7 +787,10 @@ f00baron.Explosion = function(params) {
 	self.element.find('.anim-end').on('endEvent', function(event) {
 		self.element.remove();
 	});
-	// Backup removal
+	// Backup removals
 	window.setTimeout(function() {self.element.remove()}, 5000);
+	window.setTimeout(function() {
+		self.element.find('.explosion').hide();
+	}, 800);
 	
 }
