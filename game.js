@@ -27,6 +27,7 @@
 			source: <The firing plane object>
 			bullet: <The relevant bullet object>
 		explosion: BOOM! HEADSHOT!
+			target: <The exploding object>
 			x: <x-coord of explosion>
 			y: <y-coord of explosion>
 	The following events will be triggered on an object's DOM element
@@ -145,6 +146,12 @@ f00baron.Game = function(params) {
 	explosion.removeClass('template');
 	jQuery(window).on('explosion', function(event, params) {
 		var element = explosion.clone();
+		if (params.target) {
+			element.addClass('player' + (params.target.player+1));
+			if (params.target.player % 2) {
+				element.find('.debris').attr('transform', 'scale(-1,1)');
+			}
+		}
 		element.appendTo(jQuery('#explosions'));
 		var explodey = new f00baron.Explosion({
 			 element: element
@@ -325,7 +332,7 @@ f00baron.Plane = function(params) {
 	
 	this.element = params.element;
 	this.element.data('f00baron.object', this);
-	this.player = params.player
+	this.player = params.player;
 	
 	var start_pos = [parseInt(this.element.attr('x')), parseInt(this.element.attr('y'))];
 	var start_heading = this.element.find('.rotator').attr('transform');
@@ -412,7 +419,11 @@ f00baron.Plane = function(params) {
 	
 	// Register event listeners
 	jQuery(this.element).on('destroy', function(event) {
-		jQuery(window).trigger('explosion', {x: self.x, y: self.y});
+		jQuery(window).trigger('explosion', {
+			 target: self
+			,x: self.x
+			,y: self.y
+		});
 		respawn();
 	});
 	jQuery(this.element).on('engineOn', function(event) {
