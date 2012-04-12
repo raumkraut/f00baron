@@ -609,6 +609,56 @@
 					stroke-linejoin="miter"
 					>
 				<g class="scaler" transform="scale(3)">
+					<g class="debris">
+						<use xlink:href="#symbol-prop"
+								x="0" y="0"
+								width="5" height="5"
+								>
+							<animateTransform
+									attributeType="XML" attributeName="transform"
+									type="rotate"
+									from="0" to="360" repeatCount="indefinite"
+									dur="0.5s"
+									/>
+							<animateMotion
+									path="M 0,0 q 30,-70 60,60"
+									begin="f00baron_start.begin" dur="2s"
+									/>
+						</use>
+						<circle cx="0" cy="0" r="0.5" fill="#888">
+							<animateMotion
+									path="M 0,0 q 60,-30 120,40"
+									begin="f00baron_start.begin" dur="2s"
+									/>
+						</circle>
+						<use xlink:href="#symbol-bullet"
+								x="0" y="0"
+								transform="scale(0.5)"
+								>
+							<animateMotion
+									path="M 0,0 q -20,-60 -50,60"
+									begin="f00baron_start.begin" dur="2s"
+									/>
+						</use>
+						<rect x="0" y="0" width="4" height="2"
+								fill="currentColor"
+								>
+							<animateTransform
+									attributeType="XML" attributeName="transform"
+									type="rotate"
+									from="0 2,1" to="360 2,1" repeatCount="indefinite"
+									dur="1s"
+									/>
+							<animateMotion
+									path="M 0,0 q -40,-20 -60,100"
+									begin="f00baron_start.begin" dur="2s"
+									/>
+						</rect>
+						<animate attributeType="XML" attributeName="opacity"
+								from="1" to="0" fill="freeze"
+								begin="f00baron_start.begin+1.5s" dur="0.5s"
+								/>
+					</g>
 					<g class="cloud">
 						<path d="M -17,0
 								q -3,-7 4,-9
