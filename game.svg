@@ -27,7 +27,7 @@
 		<style type="text/css">
 			<![CDATA[
 				#display {
-					font-family: sans;
+					font-family: sans-serif;
 				}
 				
 				.player1 {
