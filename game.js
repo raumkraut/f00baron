@@ -69,16 +69,37 @@ window.requestAnimationFrame = (function() {
 
 f00baron = new Object();
 
+f00baron.forEach = function(arr, callback) {
+	/*
+		Acts like <Array>.forEach, but also works for things which aren't
+		necessarily Array objects.
+	*/
+	return Array.prototype.forEach.call(arr, callback);
+}
+
+f00baron.trigger = function(type, detail, target) {
+	/*
+		Fires an event of the given `type` and having additional `detail`.
+		
+		If a `target` DOM element is not given, the event will be fired from
+		the window element.
+		
+		Returns the created event instance, in case you were curious.
+	*/
+	if (target === undefined) {
+		target = window;
+	}
+	var event = new CustomEvent(type, {detail: detail});
+	target.dispatchEvent(event);
+	return event;
+}
+
 f00baron.getAbsolutePos = function(element) {
 	/*
-		Returns the root-space coordinates for given jQuery SVG element.
+		Returns the root-space coordinates for given SVG DOM element.
 		
 		Return value is an array of the form: [x,y]
 	*/
-	element = element[0];
-	if (element == undefined) {
-		throw new Error('Called getAbsolutePos on empty element set');
-	}
 	if (element.getScreenBBox != undefined) {
 		// Support for getScreenBBox is limited. :(
 		var bbox = element.getScreenBBox();
@@ -107,9 +128,9 @@ f00baron.Game = function(params) {
 		be instantiated and interacted with by document javascript.
 		
 		params = {
-			ground: <jQuery-wrapped ground element>
-			clouds: <jQuery-wrapped list of clouds elements>
-			explosion: <jQuery-wrapped explosion template element>
+			ground: <ground DOM element>
+			clouds: <collection of cloud DOM elements>
+			explosion: <explosion template DOM element>
 		}
 	*/
 	if ( !(this instanceof arguments.callee) ) 
@@ -117,15 +138,14 @@ f00baron.Game = function(params) {
 	
 	var self = this;
 	
-	var ground = params.ground[0].getBBox().y;
+	var ground = params.ground.getBBox().y;
 	
 	// Array of informational objects. Array index is player_id
 	var players = [];
 	
 	// Create the clouds
-	params.clouds.each(function(idx) {
-		var element = jQuery(this);
-		var bbox = this.getBBox();
+	f00baron.forEach(params.clouds, function(element) {
+		var bbox = element.getBBox();
 		var half_height = bbox.height / 2;
 		var half_width = bbox.width / 2;
 		var cloud = new f00baron.Cloud({
@@ -138,21 +158,26 @@ f00baron.Game = function(params) {
 			,t_min: 10
 			,t_max: 60
 		});
-		jQuery(window).trigger('newCloud', {cloud: cloud});
+		window.dispatchEvent
+		f00baron.trigger('newCloud', {cloud: cloud});
 		
 	});
 	
-	var explosion = params.explosion.clone().detach();
-	explosion.removeClass('template');
-	jQuery(window).on('explosion', function(event, params) {
-		var element = explosion.clone();
+	var explosions = document.getElementById('explosions');
+	var explosion = params.explosion.parentNode.removeChild(params.explosion);
+	explosion.classList.remove('template');
+	window.addEventListener('explosion', function(event) {
+		var params = event.detail;
+		var element = explosion.cloneNode(true);
 		if (params.target) {
-			element.addClass('player' + (params.target.player+1));
+			element.classList.add('player' + (params.target.player+1));
 			if (params.target.player % 2) {
-				element.find('.debris').attr('transform', 'scale(-1,1)');
+				f00baron.forEach(element.getElementsByClassName('debris'), function(debris) {
+					debris.setAttribute('transform', 'scale(-1,1)');
+				});
 			}
 		}
-		element.appendTo(jQuery('#explosions'));
+		explosions.appendChild(element);
 		var explodey = new f00baron.Explosion({
 			 element: element
 			,x: params.x
@@ -160,24 +185,26 @@ f00baron.Game = function(params) {
 		});
 	});
 	
-	jQuery(window).on('newPlane', function(event, params) {
+	window.addEventListener('newPlane', function(event) {
+		var params = event.detail;
 		players[params.plane.player].plane = params.plane;
 	});
 	
 	// Check for interactions
-	jQuery(window).on('newPosition', function(event, params) {
+	window.addEventListener('newPosition', function(event) {
+		var params = event.detail;
 		// Check if the target has collided with a plane.
 		if (!params.target.collidable) {
 			return;
 		}
-		for (idx in players) {
-			var other = players[idx].plane;
+		players.forEach(function(player, idx) {
+			var other = player.plane;
 			if (other === params.target) {
 				// Stop hitting yourself
-				continue;
+				return;
 			} else if (!other.collidable) {
 				// You can't hit what can't be hit
-				continue;
+				return;
 			}
 			
 			// Determine angle from target to other
@@ -188,17 +215,17 @@ f00baron.Game = function(params) {
 			var cutoff = params.target.elliptical_radius(angle) + other.elliptical_radius(angle);
 			if ((dx*dx + dy*dy) < (cutoff * cutoff)) {
 				// Impact!
-				jQuery(params.target.element).trigger('destroy', {
+				f00baron.trigger('destroy', {
 					 target: params.target
 					,by: other
-				});
-				jQuery(other.element).trigger('destroy', {
+				}, params.target.element);
+				f00baron.trigger('destroy', {
 					 target: other
 					,by: params.target
-				});
+				}, other.element);
 			}
 			
-		}
+		});
 		
 	});
 	
@@ -207,9 +234,9 @@ f00baron.Game = function(params) {
 			Add a player to the game.
 			
 			params = {
-				element: <The jQuery-wrapped DOM element.>
+				element: <plane DOM element>
 				controls: {a mapping of keycode: eventType for this player}
-				scoreboard: <jQuery-wrapped scoreboard element>
+				scoreboard: <scoreboard DOM element>
 			}
 		*/
 		var player_id = players.length;
@@ -227,10 +254,10 @@ f00baron.Game = function(params) {
 			,x_min: 0
 			,x_max: 1000
 		});
-		jQuery(window).trigger('newPlane', {plane: plane});
+		f00baron.trigger('newPlane', {plane: plane});
 		
 		// Set up the controls
-		jQuery(window).on('keydown keyup', function(event) {
+		var handle_key = function(event) {
 			// Map keycode to control params
 			var event_type = params.controls[event.which];
 			if (event_type == undefined) {
@@ -260,10 +287,13 @@ f00baron.Game = function(params) {
 				}
 			}
 			
-			jQuery(plane.element).trigger(event_type, {target: plane});
-		});
+			f00baron.trigger(event_type, {target: plane}, plane.element);
+		};
+		window.addEventListener('keydown', handle_key);
+		window.addEventListener('keyup', handle_key);
 		
-		jQuery(plane.element).on('destroy', function(event, params) {
+		plane.element.addEventListener('destroy', function(event) {
+			var params = event.detail;
 			// A plane has been destroyed!
 			var info = players[player_id];
 			if (!params.by) {
@@ -274,8 +304,7 @@ f00baron.Game = function(params) {
 				info = players[params.by.player];
 				info.score += 1;
 			}
-			
-			info.scoreboard.text(info.score);
+			info.scoreboard.textContent = info.score;
 		});
 	}
 	
@@ -283,9 +312,6 @@ f00baron.Game = function(params) {
 	f00baron.Game.prototype.start = function() {
 		/*
 			Start the game running.
-			
-			params = {
-			}
 		*/
 		var prev_tick = Date.now();
 		var do_tick = function(now) {
@@ -299,7 +325,7 @@ f00baron.Game = function(params) {
 				dt = 50;
 			}
 			
-			jQuery(window).trigger('tick', {
+			f00baron.trigger('tick', {
 				 now: now
 				,dt: dt
 			});
@@ -307,7 +333,7 @@ f00baron.Game = function(params) {
 			window.requestAnimationFrame(do_tick);
 		}
 		// The first tick
-		jQuery(window).trigger('startGame', {game:this});
+		f00baron.trigger('startGame', {game:this});
 		do_tick(prev_tick);
 	}
 
@@ -317,7 +343,7 @@ f00baron.Plane = function(params) {
 		Vrooom! Neeeeeow! Dakka dakka dakka!
 		
 		params = {
-			element: The jQuery element representing this plane.
+			element: The DOM element representing this plane.
 			player: The player to whom this plane belongs
 			ground: The scene's ground level.
 			ceiling: The scene's flight ceiling.
@@ -331,13 +357,16 @@ f00baron.Plane = function(params) {
 	var self = this;
 	
 	this.element = params.element;
-	this.element.data('f00baron.object', this);
 	this.player = params.player;
+	this.bullet = this.element.getElementsByClassName('bullet template')[0];
 	
-	var start_pos = [parseInt(this.element.attr('x')), parseInt(this.element.attr('y'))];
-	var start_heading = this.element.find('.rotator').attr('transform');
+	var start_pos = [
+		 parseInt(this.element.getAttribute('x'))
+		,parseInt(this.element.getAttribute('y'))
+	];
+	var start_heading = this.element.getElementsByClassName('rotator')[0].getAttribute('transform');
 	start_heading = parseInt(start_heading.replace(/.*rotate\((-?[0-9]+)\).*/, '$1'), 10);
-	var dimensions = this.element.find('.sizer')[0].getBBox()
+	var dimensions = this.element.getElementsByClassName('sizer')[0].getBBox()
 	var height = dimensions.height;
 	var width = dimensions.width;
 	
@@ -366,7 +395,7 @@ f00baron.Plane = function(params) {
 	var fire_interval = 400;
 	
 	var get_bbox = function() {
-		var bbox = self.element[0].getBBox();
+		var bbox = self.element.getBBox();
 		return {
 			 height: bbox.height
 			,width: bbox.width
@@ -418,37 +447,37 @@ f00baron.Plane = function(params) {
 	}
 	
 	// Register event listeners
-	jQuery(this.element).on('destroy', function(event) {
-		jQuery(window).trigger('explosion', {
+	this.element.addEventListener('destroy', function(event) {
+		f00baron.trigger('explosion', {
 			 target: self
 			,x: self.x
 			,y: self.y
 		});
 		respawn();
 	});
-	jQuery(this.element).on('engineOn', function(event) {
+	this.element.addEventListener('engineOn', function(event) {
 		self.engine = true;
 	});
-	jQuery(this.element).on('engineOff', function(event) {
+	this.element.addEventListener('engineOff', function(event) {
 		self.engine = false;
 	});
-	jQuery(this.element).on('rotateCW', function(event) {
+	this.element.addEventListener('rotateCW', function(event) {
 		self.pitch = 1;
 	});
-	jQuery(this.element).on('rotateACW', function(event) {
+	this.element.addEventListener('rotateACW', function(event) {
 		self.pitch = -1;
 	});
-	jQuery(this.element).on('rotateOff', function(event) {
+	this.element.addEventListener('rotateOff', function(event) {
 		self.pitch = 0;
 	});
-	jQuery(this.element).on('fireOn', function(event) {
+	this.element.addEventListener('fireOn', function(event) {
 		self.firing = true;
 	});
-	jQuery(this.element).on('fireOff', function(event) {
+	this.element.addEventListener('fireOff', function(event) {
 		self.firing = false;
 	});
 	
-	jQuery(this.element).on('fire', function(event) {
+	this.element.addEventListener('fire', function(event) {
 		/*
 			Create a bullet in front of the plane, with the same velocity
 			vector.
@@ -461,12 +490,12 @@ f00baron.Plane = function(params) {
 		b_vy = self.vy + (dakka * sine);
 		
 		// Clone the bullet template, and move it to root-space
-		var element = self.element.find('.bullet.template');
-		var b_pos = f00baron.getAbsolutePos(element);
-		element = element.clone().appendTo(jQuery('#board'));
-		element.removeClass('template');
-		element.attr('x', b_pos[0]);
-		element.attr('y', b_pos[1]);
+		var b_pos = f00baron.getAbsolutePos(self.bullet);
+		var element = self.bullet.cloneNode(true);
+		document.getElementById('board').appendChild(element);
+		element.setAttribute('x', b_pos[0]);
+		element.setAttribute('y', b_pos[1]);
+		element.classList.remove('template');
 		
 		var bullet = new f00baron.Bullet({
 			 element: element
@@ -475,17 +504,17 @@ f00baron.Plane = function(params) {
 			,vy: b_vy
 		});
 		
-		jQuery(window).trigger('newBullet', {source: self, bullet: bullet});
+		f00baron.trigger('newBullet', {source: self, bullet: bullet});
 	});
 	
-	jQuery(this.element).on('newPosition', function(event) {
+	this.element.addEventListener('newPosition', function(event) {
 		/*
 			Updates the plane's graphical element.
 		*/
-		self.element.attr('x', self.x);
-		self.element.attr('y', self.y);
+		self.element.setAttribute('x', self.x);
+		self.element.setAttribute('y', self.y);
 		var transform = 'rotate(' + self.heading + ')';
-		self.element.find('.rotator').attr('transform', transform);
+		self.element.getElementsByClassName('rotator')[0].setAttribute('transform', transform);
 		self.bbox = get_bbox();
 		
 		// Check for out-of-bounds
@@ -493,12 +522,12 @@ f00baron.Plane = function(params) {
 		if (self.y < ceiling + self.bbox.half_height) {
 			self.stalled = true;
 		} else if (self.airborne && self.y > ground - self.elliptical_radius(Math.PI/2)) {
-			jQuery(self.element).trigger('destroy', {target: self});
+			f00baron.trigger('destroy', {target: self}, self.element);
 		}
 		
 	});
 	
-	jQuery(window).on('tick', function(event, params) {
+	window.addEventListener('tick', function(event) {
 		/*
 			Update the plane's position and whatnot.
 			
@@ -507,6 +536,7 @@ f00baron.Plane = function(params) {
 				dt: The amount of time which has passed (milliseconds)
 			}
 		*/
+		var params = event.detail;
 		var dx, dy, dr;
 		var dt = params.dt / 1000;
 		
@@ -604,13 +634,13 @@ f00baron.Plane = function(params) {
 				}
 			}
 		}
-		jQuery(self.element).trigger('newPosition', {target: self});
+		f00baron.trigger('newPosition', {target: self}, self.element);
 		
 		// Fire at will!
 		if (self.firing && self.airborne) {
 			if (self.last_fire + fire_interval < params.now) {
 				self.last_fire = params.now;
-				jQuery(self.element).trigger('fire', {target: self});
+				f00baron.trigger('fire', {target: self}, self.element);
 			}
 		}
 	});
@@ -622,7 +652,7 @@ f00baron.Bullet = function(params) {
 		Pew! Pew!
 		
 		params = {
-			element: <jQuery-wrapped DOM element>
+			element: <bullet DOM element>
 			vx: <Initial x-velocity>
 			vy: <Initial y-velocity>
 		}
@@ -633,13 +663,12 @@ f00baron.Bullet = function(params) {
 	var self = this;
 	
 	this.element = params.element;
-	this.element.data('f00baron.object', this);
 	this.player = params.player;
 	this.collidable = true;
 	
-	this.size = this.element[0].getBBox().width;
-	this.x = parseInt(this.element.attr('x'));
-	this.y = parseInt(this.element.attr('y'));
+	this.size = this.element.getBBox().width;
+	this.x = parseInt(this.element.getAttribute('x'));
+	this.y = parseInt(this.element.getAttribute('y'));
 	this.vx = params.vx;
 	this.vy = params.vy;
 	
@@ -651,10 +680,11 @@ f00baron.Bullet = function(params) {
 		return self.size;
 	}
 	
-	var tick = function(event, params) {
+	var tick = function(event) {
 		/*
 			Bullets move every tick; that's about it.
 		*/
+		var params = event.detail;
 		var dt = params.dt / 1000;
 		self.x += self.vx * dt;
 		self.y += self.vy * dt;
@@ -669,24 +699,24 @@ f00baron.Bullet = function(params) {
 		}
 		
 		if (destroyed) {
-			jQuery(self.element).trigger('destroy', {target: self});
+			f00baron.trigger('destroy', {target: self}, self.element);
 		} else {
-			jQuery(self.element).trigger('newPosition', {target: self});
+			f00baron.trigger('newPosition', {target: self}, self.element);
 		}
 		
 	}
-	jQuery(window).on('tick', tick);
-	
-	jQuery(this.element).on('destroy', function(event) {
-		jQuery(window).off('tick', tick);
-		self.element.remove();
+	window.addEventListener('tick', tick);
+	this.element.addEventListener('destroy', function(event) {
+		window.removeEventListener('tick', tick);
+		self.element.parentNode.removeChild(self.element);
 	});
-	jQuery(this.element).on('newPosition', function(event) {
+	
+	this.element.addEventListener('newPosition', function(event) {
 		/*
 			Update the bullet's graphic
 		*/
-		self.element.attr('x', self.x);
-		self.element.attr('y', self.y);
+		self.element.setAttribute('x', self.x);
+		self.element.setAttribute('y', self.y);
 	});
 	
 }
@@ -697,7 +727,7 @@ f00baron.Cloud = function(params) {
 		A cloud, floating gently across the sky, and blocking sight.
 		
 		params = {
-			element: <jQuery-wrapped DOM element>
+			element: <cloud DOM element>
 			x_min,x_max,y_min,y_max: <Define the random position limits>
 			t_min,t_max: <Define the transition time range>
 	*/
@@ -722,7 +752,8 @@ f00baron.Cloud = function(params) {
 	this.y = 0;
 	this.vx = 0;
 	
-	jQuery(window).on('tick', function(event, params) {
+	window.addEventListener('tick', function(event) {
+		var params = event.detail;
 		var dt = params.dt / 1000;
 		// Update position
 		self.x += self.vx * dt;
@@ -743,11 +774,11 @@ f00baron.Cloud = function(params) {
 			self.y = y_min + (Math.random() * y_range);
 			
 		}
-		jQuery(self.element).trigger('newPosition', {target:self});
+		f00baron.trigger('newPosition', {target:self}, self.element);
 	});
-	jQuery(this.element).on('newPosition', function(event) {
-		self.element.attr('x', self.x);
-		self.element.attr('y', self.y);
+	this.element.addEventListener('newPosition', function(event) {
+		self.element.setAttribute('x', self.x);
+		self.element.setAttribute('y', self.y);
 	});
 }
 
@@ -756,7 +787,7 @@ f00baron.Explosion = function(params) {
 		BOOM!
 		
 		params = {
-			element: <jQuery-wrapped DOM element representing the boom>
+			element: <DOM element representing the boom>
 			x,y: <Coordinates of the explosion>
 		}
 	*/
@@ -769,39 +800,40 @@ f00baron.Explosion = function(params) {
 	self.y = params.y;
 	self.collidable = false;
 	
-	self.element.attr('x', self.x);
-	self.element.attr('y', self.y);
+	self.element.setAttribute('x', self.x);
+	self.element.setAttribute('y', self.y);
 	
 	// Give a unique ID to the element which begins all the animations
-	var starter = self.element.find('.anim-start');
+	var starter = self.element.getElementsByClassName('anim-start')[0];
 	var starter_id = 'f00baron_anim_' + Date.now();
-	starter.attr('id', starter_id);
+	starter.setAttribute('id', starter_id);
 	// Update any element which relies on the starter for timing
-	self.element.find('[begin^=f00baron]').each(function() {
-		var anim = jQuery(this);
-		var begin = anim.attr('begin');
+	f00baron.forEach(self.element.querySelectorAll('[begin^=f00baron]'), function(anim) {
+		var begin = anim.getAttribute('begin');
 		begin = begin.replace('f00baron_start', starter_id);
-		anim.attr('begin', begin);
+		anim.setAttribute('begin', begin);
 	});
 	
 	// Randomise the direction of rotations
-	self.element.find('.rotator').each(function() {
+	f00baron.forEach(self.element.getElementsByClassName('rotator'), function(rotator) {
 		if (Math.random() > 0.5) {
-			var rotator = jQuery(this);
-			var from = rotator.attr('from');
-			rotator.attr('from', rotator.attr('to'));
-			rotator.attr('to', from);
+			var from = rotator.getAttribute('from');
+			rotator.setAttribute('from', rotator.getAttribute('to'));
+			rotator.setAttribute('to', from);
 		}
 	});
-	starter[0].beginElement();
+	starter.beginElement();
 	
-	self.element.find('.anim-end').on('endEvent', function(event) {
-		self.element.remove();
+	var anim_end = self.element.getElementsByClassName('anim-end')[0];
+	anim_end.addEventListener('endEvent', function(event) {
+		self.element.parentNode.removeChild(self.element);
 	});
 	// Backup removals
-	window.setTimeout(function() {self.element.remove()}, 5000);
 	window.setTimeout(function() {
-		self.element.find('.explosion').hide();
+		self.element.parentNode.removeChild(self.element);
+	}, 5000);
+	window.setTimeout(function() {
+		self.element.getElementsByClassName('explosion')[0].style.display = 'none';
 	}, 800);
 	
 }
