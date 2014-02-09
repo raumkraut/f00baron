@@ -43,22 +43,18 @@
 		</style>
 	</defs>
 	
-	<script type="text/ecmascript" xlink:href="lib/jquery-1.7.1.js"></script>
-	<script type="text/ecmascript" xlink:href="lib/jquery.svg.js"></script>
-	<script type="text/ecmascript" xlink:href="lib/jquery.svgdom.js"></script>
 	<script type="text/ecmascript" xlink:href="game.js"></script>
 	<script type="text/ecmascript">
 		//<![CDATA[
-		// window..load because document..ready doesn't work for SVG
-		jQuery(window).load(function() {
+		window.addEventListener('load', function() {
 			// Init game
 			var game = new f00baron.Game({
-				 ground: jQuery('#ground')
-				,clouds: jQuery('#clouds .cloud')
-				,explosion: jQuery('.explosion.template')
+				 ground: document.getElementById('ground')
+				,clouds: document.getElementById('clouds').getElementsByClassName('cloud')
+				,explosion: document.getElementsByClassName('explosion template')[0]
 			});
 			game.add_player({
-				 element: jQuery('#player1')
+				 element: document.getElementById('player1')
 				,controls: {
 					// Player 1 - WSAD
 					 87: 'engineOn'
@@ -68,10 +64,10 @@
 					,32: 'fire' // Spacebar
 					,18: 'fire' // alt
 				}
-				,scoreboard: jQuery('.player1.score')
+				,scoreboard: document.getElementsByClassName('player1 score')[0]
 			});
 			game.add_player({
-				 element: jQuery('#player2')
+				 element: document.getElementById('player2')
 				,controls: {
 					// Player 2 - up/down/left/right
 					 38: 'engineOn'
@@ -81,7 +77,7 @@
 					,17: 'fire' // ctrl (both)
 					,96: 'fire' // Numpad 0
 				}
-				,scoreboard: jQuery('.player2.score')
+				,scoreboard: document.getElementsByClassName('player2 score')
 			});
 			
 			// Start main loop
