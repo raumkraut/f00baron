@@ -77,7 +77,7 @@
 					,17: 'fire' // ctrl (both)
 					,96: 'fire' // Numpad 0
 				}
-				,scoreboard: document.getElementsByClassName('player2 score')
+				,scoreboard: document.getElementsByClassName('player2 score')[0]
 			});
 			
 			// Start main loop

@@ -292,7 +292,7 @@ f00baron.Game = function(params) {
 		
 		plane.element.addEventListener('destroy', function(event) {
 			var params = event.detail;
-			// A plane has been destroyed!
+			// This plane has been destroyed!
 			var info = players[player_id];
 			if (!params.by) {
 				info.score -= 1;
