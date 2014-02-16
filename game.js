@@ -830,7 +830,9 @@ f00baron.Explosion = function(params) {
 	});
 	// Backup removals
 	window.setTimeout(function() {
-		self.element.parentNode.removeChild(self.element);
+		if (self.element.parentNode) {
+			self.element.parentNode.removeChild(self.element);
+		}
 	}, 5000);
 	window.setTimeout(function() {
 		self.element.getElementsByClassName('explosion')[0].style.display = 'none';
