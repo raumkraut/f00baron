@@ -77,7 +77,7 @@ f00baron.trigger = function(type, detail, target) {
 	if (target === undefined) {
 		target = window;
 	}
-	var event = new CustomEvent(type, {detail: detail});
+	var event = new CustomEvent(type, {bubbles: true, detail: detail});
 	target.dispatchEvent(event);
 	return event;
 }
