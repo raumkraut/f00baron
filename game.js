@@ -54,18 +54,6 @@
 		fire: A plane is firing a bullet
 			target: <The plane in question>
 */
-// RequestAnimationFrame shim
-window.requestAnimationFrame = (function() {
-	return window.requestAnimationFrame
-		|| window.webkitRequestAnimationFrame
-		|| window.mozRequestAnimationFrame
-		|| window.oRequestAnimationFrame
-		|| window.msRequestAnimationFrame
-		|| function( callback ){
-			window.setTimeout(function(){callback(Date.now())}, 1000 / 60);
-		};
-})();
-
 
 f00baron = new Object();
 
@@ -313,7 +301,7 @@ f00baron.Game = function(params) {
 		/*
 			Start the game running.
 		*/
-		var prev_tick = Date.now();
+		var prev_tick = 0;
 		var do_tick = function(now) {
 			var dt = now - prev_tick;
 			prev_tick = now;
@@ -421,7 +409,7 @@ f00baron.Plane = function(params) {
 		self.vy = 0;
 		// Gunnery
 		self.firing = false;
-		self.last_fire = Date.now();
+		self.last_fire = 0;
 		// Interaction
 		self.collidable = false;
 	}
