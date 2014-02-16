@@ -93,16 +93,26 @@ f00baron.getAbsolutePos = function(element) {
 		var bbox = element.getScreenBBox();
 		return [bbox.x + bbox.width/2, bbox.y + bbox.height/2];
 	}
+	
+	if (element.nodeName == 'svg') {
+		// Because of browser bugs/inconsistencies, we can't getTransformToElement
+		// from one svg element to another, since *sometimes* one of the svg's
+		// viewports gets ignored... -_-
+		// Find the first sub-element which has coordinates
+		// (we only use this function in one place, so we short-cut >_> )
+		element = element.getElementsByTagName('use')[0]
+	}
+	
 	// Create a root-space SVG point to work with
 	var svg = document.querySelector('svg');
 	var point = svg.createSVGPoint();
-	if (element.nodeName != 'svg') {
-		// An SVG element's x and y are used in the matrix,
-		// so we don't want to use them here as well.
-		point.x = element.x.animVal.value;
-		point.y = element.y.animVal.value;
-	}
-	var matrix = element.getTransformToElement(svg);
+	point.x = element.x.animVal.value;
+	point.y = element.y.animVal.value;
+	
+	// Hack because of webkit bug:
+	// https://bugs.webkit.org/show_bug.cgi?id=86010
+	var matrix = svg.getScreenCTM().inverse().multiply(element.getScreenCTM());
+	//var matrix = element.getTransformToElement(svg);
 	point = point.matrixTransform(matrix);
 	return [point.x, point.y];
 }
